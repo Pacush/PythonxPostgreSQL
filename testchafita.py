@@ -13,13 +13,10 @@ try:
 
     print('Conexión exitosa')
     cursor=connection.cursor()
-    cursor.execute("SELECT version()")
-    row=cursor.fetchone()
-    print(row)
     cursor.execute("SELECT * FROM compania.empleado")
-    rows=cursor.fetchone()
+    rows=cursor.fetchall()
     for row in rows:
-        print(rows)
+        print(row)
 except Exception as ex:
     print(ex)
 
