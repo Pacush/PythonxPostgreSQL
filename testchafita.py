@@ -1,63 +1,103 @@
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import ttk
 import psycopg2
 
+# Intentar la conexión a la base de datos
 try:
-    connection=psycopg2.connect(
+    connection = psycopg2.connect(
         host='localhost',
         user='admin',
         password='admin',
         database='dbjuan',
         port='5433'
     )
-
+    cursor = connection.cursor()
     print('Conexión exitosa')
-    cursor=connection.cursor()
-    cursor.execute("SELECT * FROM compania.empleado")
-    rows=cursor.fetchall()
-    for row in rows:
-        print(row)
+
 except Exception as ex:
-    print(ex)
+    print("Error al conectar a la base de datos:", ex)
 
 default_user = "admin"
 default_password = "1234"
 
-# Función para mostrar la nueva ventana con botones
+# Función para mostrar la nueva ventana con la tabla
 def open_new_window():
-    new_root = tk.Tk()  # Crear una nueva ventana principal
-    new_root.title("Ventana Principal")
-    
+    ventana = tk.Toplevel()  # Crear una nueva ventana secundaria
+    ventana.title("Ventana Principal")
+
+    # Configurar el logo de la nueva ventana
+    try:
+        logo = tk.PhotoImage(file="icon.png")
+        ventana.iconphoto(False, logo)
+    except Exception as e:
+        print("No se pudo cargar el icono:", e)
+
     # Centramos la nueva ventana en la pantalla
-    screen_width = new_root.winfo_screenwidth()
-    screen_height = new_root.winfo_screenheight()
+    screen_width = ventana.winfo_screenwidth()
+    screen_height = ventana.winfo_screenheight()
     new_window_width = screen_width // 3
     new_window_height = screen_height // 3
     x = (screen_width // 2) - (new_window_width // 2)
     y = (screen_height // 2) - (new_window_height // 2)
-    
-    new_root.geometry(f"{new_window_width}x{new_window_height}+{x}+{y}")
-    
-    # Configurar el logo de la nueva ventana
-    logo = tk.PhotoImage(file="icon.png")
-    new_root.iconphoto(False, logo)
+    ventana.geometry(f"{new_window_width}x{new_window_height}+{x}+{y}")
 
-    # Crear botones apilados en el centro
-    button1 = tk.Button(new_root, text="Botón 1")
-    button2 = tk.Button(new_root, text="Botón 2")
-    button3 = tk.Button(new_root, text="Botón 3")
+    # Crear un marco para la tabla y las barras de desplazamiento
+    frame = tk.Frame(ventana)
+    frame.pack(fill="both", expand=True)
+
+    # Crear la tabla con el Treeview y agregar las barras de desplazamiento
+    tabla = ttk.Treeview(frame, columns=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), show="headings", height=10)
     
-    button1.pack(pady=10, expand=True)
-    button2.pack(pady=10, expand=True)
-    button3.pack(pady=10, expand=True)
-    
-    new_root.mainloop()  # Mantener la nueva ventana activa
+    # Configurar los encabezados de la tabla
+    tabla.heading(1, text="Nombre")
+    tabla.heading(2, text="Apellido")
+    tabla.heading(3, text="NSS")
+    tabla.heading(4, text="Fecha Nacimiento")
+    tabla.heading(5, text="Direccion")
+    tabla.heading(6, text="Ciudad")
+    tabla.heading(7, text="Sexo")
+    tabla.heading(8, text="Salario")
+    tabla.heading(9, text="NSS Sup")
+    tabla.heading(10, text="Num. Dpto.")
+
+    # Ajustar las columnas
+    for col in range(0, 10):
+        tabla.column(col, anchor='center', width=100)
+
+    # Crear la barra de desplazamiento vertical
+    scrollbar_vertical = ttk.Scrollbar(frame, orient="vertical", command=tabla.yview)
+    tabla.configure(yscroll=scrollbar_vertical.set)
+
+    # Crear la barra de desplazamiento horizontal
+    scrollbar_horizontal = ttk.Scrollbar(frame, orient="horizontal", command=tabla.xview)
+    tabla.configure(xscroll=scrollbar_horizontal.set)
+
+    # Posicionar la tabla y los scrollbars
+    tabla.grid(row=0, column=0, sticky="nsew")
+    scrollbar_vertical.grid(row=0, column=1, sticky="ns")
+    scrollbar_horizontal.grid(row=1, column=0, sticky="ew")
+
+    # Expandir la tabla y los scrollbars para llenar el espacio del marco
+    frame.grid_rowconfigure(0, weight=1)
+    frame.grid_columnconfigure(0, weight=1)
+
+    # Ejecutar la consulta SQL y rellenar la tabla
+    try:
+        cursor.execute("SELECT * FROM compania.empleado")
+        rows = cursor.fetchall()
+        for row in rows:
+            tabla.insert('', 'end', values=row)
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al ejecutar la consulta: {e}")
+
+    ventana.mainloop()
 
 # Función para validar las credenciales
 def login():
     username = entry_username.get()
     password = entry_password.get()
-    
+
     if username == default_user and password == default_password:
         messagebox.showinfo("Inicio de sesión", "¡Inicio de sesión exitoso!")
         root.destroy()  # Cerrar la ventana de login
@@ -69,22 +109,20 @@ def login():
 root = tk.Tk()
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
-login_window_width = screen_width / 5
-login_window_height = screen_height / 5
+login_window_width = screen_width // 5
+login_window_height = screen_height // 5
 x = (screen_width // 2) - (login_window_width // 2)
 y = (screen_height // 2) - (login_window_height // 2)
 
-window_height = int(login_window_height)
-window_width = int(login_window_width)
-x = int(x)
-y = int(y)
-
-root.geometry(f"{window_width}x{window_height}+{x}+{y}")  # Cambia "400x300" al tamaño que desees
+root.geometry(f"{login_window_width}x{login_window_height}+{x}+{y}")
 root.title("Inicio de Sesión")
 
 # Configurar el logo de la ventana principal
-logo = tk.PhotoImage(file="icon.png")  # Asegúrate de cambiar la ruta
-root.iconphoto(False, logo)
+try:
+    logo = tk.PhotoImage(file="icon.png")
+    root.iconphoto(False, logo)
+except Exception as e:
+    print("No se pudo cargar el icono:", e)
 
 # Crear etiquetas y entradas para el usuario y la contraseña
 label_username = tk.Label(root, text="Usuario:")
@@ -103,3 +141,9 @@ button_login.pack(pady=20)
 
 # Iniciar el bucle de la interfaz gráfica
 root.mainloop()
+
+# Cerrar la conexión a la base de datos al final
+if connection:
+    cursor.close()
+    connection.close()
+    print("Conexión cerrada.")
