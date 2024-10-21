@@ -1,5 +1,23 @@
 import tkinter as tk
 from tkinter import messagebox
+import psycopg2
+
+
+
+try:
+    connection = psycopg2.connect(
+        host='localhost',
+        user='postgres',
+        password='12345',
+        database='NucleoDeDiagnostico',
+        port='5432'
+    )
+    cursor = connection.cursor()
+    print('Conexión exitosa')
+
+except Exception as ex:
+    print("Error al conectar a la base de datos:", ex)
+
 
 # Función para centrar y redimensionar ventanas
 def centrar_ventana(ventana):
