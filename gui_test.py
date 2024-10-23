@@ -75,6 +75,7 @@ def login():
 
 # Ventana principal (menú)
 def abrir_menu_principal():
+    global ventana_menu
     ventana_menu = tk.Tk()
     ventana_menu.title("Gestor de registros")
     cargar_logo(ventana_menu)
@@ -94,10 +95,10 @@ def abrir_menu_principal():
     btn2 = tk.Button(frame_menu, text="Botón 2", width=20)
     btn2.grid(row=2, column=0, padx=10, pady=10, sticky="w")
     
-    btn3 = tk.Button(frame_menu, text="Botón 3", width=20)
+    btn3 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
     btn3.grid(row=3, column=0, padx=10, pady=10, sticky="w")
     
-    logo_img = tk.PhotoImage(file="logo.png")
+    logo_img = tk.PhotoImage(file="logo2.png")
     label_logo = tk.Label(frame_menu, image=logo_img)
     label_logo.grid(row=1, column=1, rowspan=3, padx=20, pady=10, sticky="e")
     
@@ -180,6 +181,9 @@ def abrir_ventana_empleados():
     
     centrar_ventana(ventana_empleados)
 
+def cerrar_sesion():
+    ventana_menu.destroy()
+    login()
 
 # Iniciar el programa con la ventana de login
 
