@@ -92,7 +92,7 @@ def abrir_menu_principal():
     btn1 = tk.Button(frame_menu, text="Empleados", command=abrir_ventana_empleados, width=20)
     btn1.grid(row=1, column=0, padx=10, pady=10, sticky="w")
     
-    btn2 = tk.Button(frame_menu, text="Botón 2", width=20)
+    btn2 = tk.Button(frame_menu, text="Doctores", width=20)
     btn2.grid(row=2, column=0, padx=10, pady=10, sticky="w")
     
     btn3 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
@@ -159,7 +159,7 @@ def abrir_ventana_empleados():
     button_frame = tk.Frame(frame_principal)
     button_frame.pack(fill="x", pady=10)
     
-    btn_registrar = tk.Button(button_frame, text="Registrar", width=15)
+    btn_registrar = tk.Button(button_frame, text="Registrar", width=15, command=registrar_empleado)
     btn_registrar.pack(side="left", padx=10)
     
     btn_editar = tk.Button(button_frame, text="Editar", width=15)
@@ -180,6 +180,58 @@ def abrir_ventana_empleados():
         connection.close()
     
     centrar_ventana(ventana_empleados)
+
+
+def registrar_empleado():
+    # Ventana para registrar nuevo empleado
+    ventana_registro = tk.Toplevel()
+    ventana_registro.title("Registrar nuevo empleado")
+    cargar_logo(ventana_registro)
+    
+    frame_registro = tk.Frame(ventana_registro)
+    frame_registro.pack(padx=10, pady=10)
+
+    # Campos para registrar empleado
+    labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Sueldo", "Turno", "Contraseña"]
+    entries = []
+
+    for label_text in labels:
+        label = tk.Label(frame_registro, text=label_text)
+        label.pack(pady=2)
+        entry = tk.Entry(frame_registro)
+        entry.pack(pady=2)
+        entries.append(entry)
+
+    def guardar_empleado():
+        # Recuperar los valores de los campos
+        valores = [entry.get() for entry in entries]
+        if all(valores):
+            try:
+                connection, cursor = conectar_db()
+                if connection and cursor:
+                    query = """
+                        INSERT INTO empleados (nombre, direccion, telefono, fecha_nac, sexo, sueldo, turno, contrasena)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(query, tuple(valores))
+                    connection.commit()
+                    messagebox.showinfo("Éxito", "Empleado registrado exitosamente")
+                    cursor.close()
+                    connection.close()
+                    ventana_registro.destroy()  # Cerrar la ventana de registro después de guardar
+                else:
+                    messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo registrar el empleado: {e}")
+        else:
+            messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
+    
+    # Botón para guardar empleado
+    btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_empleado)
+    btn_guardar.pack(pady=10)
+
+    centrar_ventana(ventana_registro)
+
 
 def cerrar_sesion():
     ventana_menu.destroy()
