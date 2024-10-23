@@ -92,11 +92,14 @@ def abrir_menu_principal():
     btn1 = tk.Button(frame_menu, text="Empleados", command=abrir_ventana_empleados, width=20)
     btn1.grid(row=1, column=0, padx=10, pady=10, sticky="w")
     
-    btn2 = tk.Button(frame_menu, text="Doctores", width=20)
+    btn2 = tk.Button(frame_menu, text="Doctores", command=abrir_ventana_doctores , width=20)
     btn2.grid(row=2, column=0, padx=10, pady=10, sticky="w")
-    
-    btn3 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
+
+    btn3 = tk.Button(frame_menu, text="Boton3", width=20, command=cerrar_sesion)
     btn3.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+    
+    btn4 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
+    btn4.grid(row=4, column=0, padx=10, pady=10, sticky="w")
     
     logo_img = tk.PhotoImage(file="logo2.png")
     label_logo = tk.Label(frame_menu, image=logo_img)
@@ -171,7 +174,7 @@ def abrir_ventana_empleados():
     # Conectar y mostrar los datos en la tabla
     connection, cursor = conectar_db()
     if connection and cursor:
-        cursor.execute("SELECT * FROM empleados")  # Asegúrate de que la tabla existe y tiene estos campos
+        cursor.execute("SELECT * FROM empleados ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
         rows = cursor.fetchall()
         for row in rows:
             treeview.insert("", "end", values=row)
@@ -180,7 +183,6 @@ def abrir_ventana_empleados():
         connection.close()
     
     centrar_ventana(ventana_empleados)
-
 
 def registrar_empleado():
     # Ventana para registrar nuevo empleado
@@ -231,6 +233,132 @@ def registrar_empleado():
     btn_guardar.pack(pady=10)
 
     centrar_ventana(ventana_registro)
+
+# Ventana de doctores
+def abrir_ventana_doctores():
+    ventana_doctores = tk.Toplevel()
+    ventana_doctores.title("Doctores")
+    cargar_logo(ventana_doctores)
+    
+    frame_principal = tk.Frame(ventana_doctores)
+    frame_principal.pack(expand=True, fill="both", padx=10, pady=10)
+    
+    # Crear tabla con scrollbars
+    tree_frame = tk.Frame(frame_principal)
+    tree_frame.pack(fill="both", expand=True)
+    
+    # Scrollbars
+    scrollbar_y = tk.Scrollbar(tree_frame, orient="vertical")
+    scrollbar_y.pack(side="right", fill="y")
+    
+    scrollbar_x = tk.Scrollbar(tree_frame, orient="horizontal")
+    scrollbar_x.pack(side="bottom", fill="x")
+    
+    # Definir columnas de la tabla doctores
+    treeview = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "especialidad", "contrasena"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+    treeview.pack(fill="both", expand=True)
+    
+    # Configuración de las columnas
+    treeview.heading("codigo", text="Código")
+    treeview.heading("nombre", text="Nombre")
+    treeview.heading("direccion", text="Dirección")
+    treeview.heading("telefono", text="Teléfono")
+    treeview.heading("fecha_nac", text="Fecha Nacimiento")
+    treeview.heading("sexo", text="Sexo")
+    treeview.heading("especialidad", text="Especialidad")
+    treeview.heading("contrasena", text="Contraseña")
+    
+    # Ajustar el tamaño de las columnas
+    treeview.column("codigo", width=80)
+    treeview.column("nombre", width=150)
+    treeview.column("direccion", width=200)
+    treeview.column("telefono", width=100)
+    treeview.column("fecha_nac", width=120)
+    treeview.column("sexo", width=80)
+    treeview.column("especialidad", width=80)
+    treeview.column("contrasena", width=120)
+    
+    # Asignar los scrollbars al Treeview
+    scrollbar_y.config(command=treeview.yview)
+    scrollbar_x.config(command=treeview.xview)
+    
+    # Botones para registrar, editar y eliminar doctores
+    button_frame = tk.Frame(frame_principal)
+    button_frame.pack(fill="x", pady=10)
+    
+    btn_registrar = tk.Button(button_frame, text="Registrar", width=15, command=registrar_doctor)
+    btn_registrar.pack(side="left", padx=10)
+    
+    btn_editar = tk.Button(button_frame, text="Editar", width=15)
+    btn_editar.pack(side="left", padx=10)
+    
+    btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
+    btn_eliminar.pack(side="left", padx=10)
+    
+    # Conectar y mostrar los datos en la tabla
+    connection, cursor = conectar_db()
+    if connection and cursor:
+        cursor.execute("SELECT * FROM doctores ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
+        rows = cursor.fetchall()
+        for row in rows:
+            treeview.insert("", "end", values=row)
+        
+        cursor.close()
+        connection.close()
+    
+    centrar_ventana(ventana_doctores)
+
+
+# Ventana para registrar un nuevo doctor, reutilizando la de empleados
+def registrar_doctor():
+    ventana_registro = tk.Toplevel()
+    ventana_registro.title("Registrar nuevo doctor")
+    cargar_logo(ventana_registro)
+    
+    frame_registro = tk.Frame(ventana_registro)
+    frame_registro.pack(padx=10, pady=10)
+
+    # Campos para registrar doctor
+    labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Especialidad", "Contraseña"]
+    entries = []
+
+    for label_text in labels:
+        label = tk.Label(frame_registro, text=label_text)
+        label.pack(pady=2)
+        entry = tk.Entry(frame_registro)
+        entry.pack(pady=2)
+        entries.append(entry)
+
+    def guardar_doctor():
+        # Recuperar los valores de los campos
+        valores = [entry.get() for entry in entries]
+        if all(valores):
+            try:
+                connection, cursor = conectar_db()
+                if connection and cursor:
+                    query = """
+                        INSERT INTO doctores (nombre, direccion, telefono, fecha_nac, sexo, especialidad, contrasena)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(query, tuple(valores))
+                    connection.commit()
+                    messagebox.showinfo("Éxito", "Doctor registrado exitosamente")
+                    cursor.close()
+                    connection.close()
+                    ventana_registro.destroy()  # Cerrar la ventana de registro después de guardar
+                else:
+                    messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo registrar el doctor: {e}")
+        else:
+            messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
+    
+    # Botón para guardar doctor
+    btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_doctor)
+    btn_guardar.pack(pady=10)
+
+    centrar_ventana(ventana_registro)
+
 
 
 def cerrar_sesion():
