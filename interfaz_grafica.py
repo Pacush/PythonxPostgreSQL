@@ -6,13 +6,17 @@ import psycopg2
 
 # Configuración de la conexión a la base de datos
 DB_HOST = "localhost"
-DB_NAME = "dbjuan"
-DB_USER = "admin"
-DB_PASS = "admin"
+DB_NAME = input("DB: ")         #"NucleoDeDiagnostico"
+DB_PORT = input("Port: ")       #"5432"
+DB_USER = input("User: ")       #"postgres"
+DB_PASS = input("Password: ")   #"12345"
 
 # Conexión a la base de datos (sin uso en este momento)
 def connect_db():
-    return psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASS)
+    connection = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASS, port=DB_PORT)
+    cursor = connection.cursor()
+    return connection, cursor
+    
 
 # Lista de empleados y doctores (por ahora no conectada a la base de datos)
 empleados = []
@@ -53,14 +57,28 @@ def pagina_empleados():
     tree.pack(pady=10)
 
     # Función para actualizar la tabla de empleados
+
+
     def actualizar_tabla():
-        for row in tree.get_children():
-            tree.delete(row)
-        for empleado in empleados:
-            tree.insert("", tk.END, values=(empleado["ID"], empleado["Nombre"], empleado["Apellido"],
-                                             empleado["NSS"], empleado["Fecha_Nac"], empleado["Direccion"],
-                                             empleado["Ciudad"], empleado["Sexo"], empleado["Salario"],
-                                             empleado["NSS_sup"], empleado["N_dep"]))
+
+
+        connection, cursor = connect_db()
+        if connection and cursor:
+            cursor.execute("SELECT * FROM empleados")  # Asegúrate de que la tabla existe y tiene estos campos
+            rows = cursor.fetchall()
+            for row in rows:
+                tree.insert("", "end", values=row)
+        
+            cursor.close()
+            connection.close()
+
+        #for row in tree.get_children():
+        #    tree.delete(row)
+        #for empleado in empleados:
+         #   tree.insert("", tk.END, values=(empleado["ID"], empleado["Nombre"], empleado["Apellido"],
+          #                                   empleado["NSS"], empleado["Fecha_Nac"], empleado["Direccion"],
+           #                                  empleado["Ciudad"], empleado["Sexo"], empleado["Salario"],
+            #                                 empleado["NSS_sup"], empleado["N_dep"]))
 
     # Inicializar la tabla de empleados
     actualizar_tabla()
@@ -105,15 +123,17 @@ def pantalla_inicio():
     
     # Cargar imagen de fondo
     try:
-        img = Image.open("icon.png")
+        img = Image.open("logo2.png")
     except FileNotFoundError:
         print("Archivo de imagen no encontrado.")
 
-    img = img.resize((400, 200), Image.Resampling.LANCZOS)
+    img = img.resize((500, 500), Image.Resampling.LANCZOS)
     bg_img = ImageTk.PhotoImage(img)
     
 # Icono de la aplicacion
-    ventana_principal.iconphoto(False, bg_img)
+    img2 = Image.open("icon.png")
+    bg_img2 = ImageTk.PhotoImage(img2)
+    ventana_principal.iconphoto(False, bg_img2)
 
 
     # Mostrar imagen
