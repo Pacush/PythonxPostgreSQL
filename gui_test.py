@@ -1,6 +1,8 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox, ttk
+
 import psycopg2
+
 
 # Conexión a la base de datos
 def conectar_db():
@@ -113,7 +115,7 @@ def abrir_menu_principal():
     btn2 = tk.Button(frame_menu, text="Doctores", command=abrir_ventana_doctores , width=20)
     btn2.grid(row=2, column=0, padx=10, pady=10, sticky="w")
 
-    btn3 = tk.Button(frame_menu, text="Boton3", width=20, command=cerrar_sesion)
+    btn3 = tk.Button(frame_menu, text="Pacientes", command=abrir_ventana_pacientes, width=20)
     btn3.grid(row=3, column=0, padx=10, pady=10, sticky="w")
     
     btn4 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
@@ -326,7 +328,6 @@ def abrir_ventana_doctores():
     
     centrar_ventana(ventana_doctores)
 
-
 # Ventana para registrar un nuevo doctor, reutilizando la de empleados
 def registrar_doctor():
     ventana_registro = tk.Toplevel()
@@ -373,6 +374,130 @@ def registrar_doctor():
     
     # Botón para guardar doctor
     btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_doctor)
+    btn_guardar.pack(pady=10)
+
+    centrar_ventana(ventana_registro)
+
+# Ventana de empleados
+def abrir_ventana_pacientes():
+    ventana_pacientes = tk.Toplevel()
+    ventana_pacientes.title("Pacientes")
+    cargar_logo(ventana_pacientes)
+    
+    frame_principal = tk.Frame(ventana_pacientes)
+    frame_principal.pack(expand=True, fill="both", padx=10, pady=10)
+    
+    # Crear tabla con scrollbars
+    tree_frame = tk.Frame(frame_principal)
+    tree_frame.pack(fill="both", expand=True)
+    
+    # Scrollbars
+    scrollbar_y = tk.Scrollbar(tree_frame, orient="vertical")
+    scrollbar_y.pack(side="right", fill="y")
+    
+    scrollbar_x = tk.Scrollbar(tree_frame, orient="horizontal")
+    scrollbar_x.pack(side="bottom", fill="x")
+    
+    # Definir columnas de la tabla empleados
+    treeview = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "edad"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+    treeview.pack(fill="both", expand=True)
+    
+    # Configuración de las columnas
+    treeview.heading("codigo", text="Código")
+    treeview.heading("nombre", text="Nombre")
+    treeview.heading("direccion", text="Dirección")
+    treeview.heading("telefono", text="Teléfono")
+    treeview.heading("fecha_nac", text="Fecha Nacimiento")
+    treeview.heading("sexo", text="Sexo")
+    treeview.heading("edad", text="Edad")
+    treeview.heading("estatura", text="Estatura")
+    
+    # Ajustar el tamaño de las columnas
+    treeview.column("codigo", width=80)
+    treeview.column("nombre", width=150)
+    treeview.column("direccion", width=200)
+    treeview.column("telefono", width=100)
+    treeview.column("fecha_nac", width=120)
+    treeview.column("sexo", width=80)
+    treeview.column("edad", width=80)
+    treeview.column("estatura", width=80)
+    
+    # Asignar los scrollbars al Treeview
+    scrollbar_y.config(command=treeview.yview)
+    scrollbar_x.config(command=treeview.xview)
+    
+    # Botones para registrar, editar y eliminar empleados
+    button_frame = tk.Frame(frame_principal)
+    button_frame.pack(fill="x", pady=10)
+    
+    btn_registrar = tk.Button(button_frame, text="Registrar", width=15)
+    btn_registrar.pack(side="left", padx=10)
+    
+    btn_editar = tk.Button(button_frame, text="Editar", width=15)
+    btn_editar.pack(side="left", padx=10)
+    
+    btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
+    btn_eliminar.pack(side="left", padx=10)
+    
+    # Conectar y mostrar los datos en la tabla
+    connection, cursor = conectar_db()
+    if connection and cursor:
+        cursor.execute("SELECT * FROM pacientes ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
+        rows = cursor.fetchall()
+        for row in rows:
+            treeview.insert("", "end", values=row)
+        
+        cursor.close()
+        connection.close()
+    
+    centrar_ventana(ventana_pacientes)
+
+def registrar_paciente():
+    # Ventana para registrar nuevo empleado
+    ventana_registro = tk.Toplevel()
+    ventana_registro.title("Registrar nuevo paciente")
+    cargar_logo(ventana_registro)
+    
+    frame_registro = tk.Frame(ventana_registro)
+    frame_registro.pack(padx=10, pady=10)
+
+    # Campos para registrar empleado
+    labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Edad", "Estatura"]
+    entries = []
+
+    for label_text in labels:
+        label = tk.Label(frame_registro, text=label_text)
+        label.pack(pady=2)
+        entry = tk.Entry(frame_registro)
+        entry.pack(pady=2)
+        entries.append(entry)
+
+    def guardar_paciente():
+        # Recuperar los valores de los campos
+        valores = [entry.get() for entry in entries]
+        if all(valores):
+            try:
+                connection, cursor = conectar_db()
+                if connection and cursor:
+                    query = """
+                        INSERT INTO empleados (nombre, direccion, telefono, fecha_nac, sexo, edad, estatura)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(query, tuple(valores))
+                    connection.commit()
+                    messagebox.showinfo("Éxito", "Paciente registrado exitosamente")
+                    cursor.close()
+                    connection.close()
+                    ventana_registro.destroy()  # Cerrar la ventana de registro después de guardar
+                else:
+                    messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo registrar al paciente: {e}")
+        else:
+            messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
+    
+    # Botón para guardar empleado
+    btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_paciente)
     btn_guardar.pack(pady=10)
 
     centrar_ventana(ventana_registro)
