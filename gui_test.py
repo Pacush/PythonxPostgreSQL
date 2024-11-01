@@ -430,7 +430,7 @@ def abrir_ventana_pacientes():
     button_frame = tk.Frame(frame_principal)
     button_frame.pack(fill="x", pady=10)
     
-    btn_registrar = tk.Button(button_frame, text="Registrar", width=15)
+    btn_registrar = tk.Button(button_frame, text="Registrar", width=15, command=registrar_paciente)
     btn_registrar.pack(side="left", padx=10)
     
     btn_editar = tk.Button(button_frame, text="Editar", width=15)
