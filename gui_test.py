@@ -468,7 +468,7 @@ def registrar_paciente():
     for label_text in labels:
         label = tk.Label(frame_registro, text=label_text)
         label.pack(pady=2)
-        entry = tk.Entry(frame_registro)
+        entry = tk.Entry(frame_registro)###
         entry.pack(pady=2)
         entries.append(entry)
 
