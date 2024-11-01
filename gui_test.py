@@ -41,11 +41,29 @@ def login():
         user = entry_user.get()
         password = entry_pass.get()
 
-        if user == "admin" and password == "1234":
-            ventana_login.destroy()
-            abrir_menu_principal()
+        connection, cursor = conectar_db()
+        
+        if connection and cursor:
+            if user == "admin" and password == "1234":
+                ventana_login.destroy()
+                abrir_menu_principal()
+        
+            else:
+                #Conuslta verificar empleado
+                cursor.execute("SELECT * FROM empleados where codigo =%s AND contrasena = %s", (user, password))
+                empleado = cursor.fetchone()
+
+                if empleado:
+                    ventana_login.destroy()
+                    abrir_menu_principal()
+                else:
+                    messagebox.showerror("Error", "Usuario o contraseña incorrectos")
+
+            cursor.close()
+            connection.close()
+
         else:
-            messagebox.showerror("Error", "Usuario o contraseña incorrectos")
+            messagebox.showerror("Error", "No se pudo conectar a la base de datos")
     
     ventana_login = tk.Tk()
     ventana_login.title("Login")
