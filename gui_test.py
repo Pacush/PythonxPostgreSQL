@@ -462,7 +462,7 @@ def registrar_paciente():
     frame_registro.pack(padx=10, pady=10)
 
     # Campos para registrar empleado
-    labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Edad", "Estatura"]
+    labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Edad", "Estatura (metros)"]
     entries = []
 
     for label_text in labels:
