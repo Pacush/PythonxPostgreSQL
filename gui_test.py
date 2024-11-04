@@ -43,12 +43,18 @@ def login():
         user = entry_user.get()
         password = entry_pass.get()
 
+        global username
+
+
+
         connection, cursor = conectar_db()
         
         if connection and cursor:
             if user == "admin" and password == "1234":
                 ventana_login.destroy()
+                username = "admin"
                 abrir_menu_principal()
+
         
             else:
                 #Conuslta verificar empleado
@@ -56,8 +62,13 @@ def login():
                 empleado = cursor.fetchone()
 
                 if empleado:
+                    cursor.execute("SELECT nombre FROM empleados where codigo =%s", (user))
+                    resultado = cursor.fetchone()
+                    username = resultado[0] if resultado else ""
                     ventana_login.destroy()
                     abrir_menu_principal()
+
+
                 else:
                     messagebox.showerror("Error", "Usuario o contraseña incorrectos")
 
@@ -106,7 +117,9 @@ def abrir_menu_principal():
     frame_menu = tk.Frame(frame_centrado)
     frame_menu.grid(row=0, column=0, padx=20, pady=20)
     
-    label_title = tk.Label(frame_menu, text="Gestor de registros", font=("Arial", 24))
+    title_text = "Bienvenido " + username
+
+    label_title = tk.Label(frame_menu, text=title_text, font=("Arial", 24))
     label_title.grid(row=0, column=0, columnspan=2, pady=20)
     
     btn1 = tk.Button(frame_menu, text="Empleados", command=abrir_ventana_empleados, width=20)
@@ -399,7 +412,7 @@ def abrir_ventana_pacientes():
     scrollbar_x.pack(side="bottom", fill="x")
     
     # Definir columnas de la tabla empleados
-    treeview = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "edad"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+    treeview = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "edad", "estatura"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
     treeview.pack(fill="both", expand=True)
     
     # Configuración de las columnas
@@ -480,8 +493,8 @@ def registrar_paciente():
                 connection, cursor = conectar_db()
                 if connection and cursor:
                     query = """
-                        INSERT INTO empleados (nombre, direccion, telefono, fecha_nac, sexo, edad, estatura)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO pacientes (nombre, direccion, telefono, fecha_nac, sexo, edad, estatura)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s  )
                     """
                     cursor.execute(query, tuple(valores))
                     connection.commit()
