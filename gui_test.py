@@ -38,7 +38,7 @@ def cargar_logo(ventana):
     except Exception as e:
         print("No se pudo cargar el icono:", e)
 
-def refresh_table(treeview, tabla):
+def refresh_table(treeview, table_name):
     # Borrar los datos actuales en el treeview
     for item in treeview.get_children():
         treeview.delete(item)
@@ -46,16 +46,14 @@ def refresh_table(treeview, tabla):
     # Re-cargar datos desde la base de datos
     connection, cursor = conectar_db()
     if connection and cursor:
-        cursor.execute(f"SELECT * FROM {tabla} ORDER BY codigo ASC")
+        query = f"SELECT * FROM {table_name} ORDER BY codigo ASC"
+        cursor.execute(query)
         rows = cursor.fetchall()
         for row in rows:
             treeview.insert("", "end", values=row)
         
         cursor.close()
         connection.close()
-        
-    else:
-        print("Fallo")
 
 # Ventana de login
 def login():
@@ -63,12 +61,18 @@ def login():
         user = entry_user.get()
         password = entry_pass.get()
 
+        global username
+
+
+
         connection, cursor = conectar_db()
         
         if connection and cursor:
             if user == "admin" and password == "1234":
                 ventana_login.destroy()
+                username = "admin"
                 abrir_menu_principal()
+
         
             else:
                 #Conuslta verificar empleado
@@ -76,8 +80,13 @@ def login():
                 empleado = cursor.fetchone()
 
                 if empleado:
+                    cursor.execute("SELECT nombre FROM empleados where codigo =%s", (user))
+                    resultado = cursor.fetchone()
+                    username = resultado[0] if resultado else ""
                     ventana_login.destroy()
                     abrir_menu_principal()
+
+
                 else:
                     messagebox.showerror("Error", "Usuario o contraseña incorrectos")
 
@@ -126,7 +135,9 @@ def abrir_menu_principal():
     frame_menu = tk.Frame(frame_centrado)
     frame_menu.grid(row=0, column=0, padx=20, pady=20)
     
-    label_title = tk.Label(frame_menu, text="Gestor de registros", font=("Arial", 24))
+    title_text = "Bienvenido " + username
+
+    label_title = tk.Label(frame_menu, text=title_text, font=("Arial", 24))
     label_title.grid(row=0, column=0, columnspan=2, pady=20)
     
     btn1 = tk.Button(frame_menu, text="Empleados", command=abrir_ventana_empleados, width=20)
@@ -170,35 +181,35 @@ def abrir_ventana_empleados():
     scrollbar_x.pack(side="bottom", fill="x")
     
     # Definir columnas de la tabla empleados
-    global tablaEmpleados
-    tablaEmpleados = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "sueldo", "turno", "contrasena"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
-    tablaEmpleados.pack(fill="both", expand=True)
+    global tabla_empleados
+    tabla_empleados = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "sueldo", "turno", "contrasena"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+    tabla_empleados.pack(fill="both", expand=True)
     
     # Configuración de las columnas
-    tablaEmpleados.heading("codigo", text="Código")
-    tablaEmpleados.heading("nombre", text="Nombre")
-    tablaEmpleados.heading("direccion", text="Dirección")
-    tablaEmpleados.heading("telefono", text="Teléfono")
-    tablaEmpleados.heading("fecha_nac", text="Fecha Nacimiento")
-    tablaEmpleados.heading("sexo", text="Sexo")
-    tablaEmpleados.heading("sueldo", text="Sueldo")
-    tablaEmpleados.heading("turno", text="Turno")
-    tablaEmpleados.heading("contrasena", text="Contraseña")
+    tabla_empleados.heading("codigo", text="Código")
+    tabla_empleados.heading("nombre", text="Nombre")
+    tabla_empleados.heading("direccion", text="Dirección")
+    tabla_empleados.heading("telefono", text="Teléfono")
+    tabla_empleados.heading("fecha_nac", text="Fecha Nacimiento")
+    tabla_empleados.heading("sexo", text="Sexo")
+    tabla_empleados.heading("sueldo", text="Sueldo")
+    tabla_empleados.heading("turno", text="Turno")
+    tabla_empleados.heading("contrasena", text="Contraseña")
     
     # Ajustar el tamaño de las columnas
-    tablaEmpleados.column("codigo", width=80)
-    tablaEmpleados.column("nombre", width=150)
-    tablaEmpleados.column("direccion", width=200)
-    tablaEmpleados.column("telefono", width=100)
-    tablaEmpleados.column("fecha_nac", width=120)
-    tablaEmpleados.column("sexo", width=80)
-    tablaEmpleados.column("sueldo", width=100)
-    tablaEmpleados.column("turno", width=80)
-    tablaEmpleados.column("contrasena", width=120)
+    tabla_empleados.column("codigo", width=80)
+    tabla_empleados.column("nombre", width=150)
+    tabla_empleados.column("direccion", width=200)
+    tabla_empleados.column("telefono", width=100)
+    tabla_empleados.column("fecha_nac", width=120)
+    tabla_empleados.column("sexo", width=80)
+    tabla_empleados.column("sueldo", width=100)
+    tabla_empleados.column("turno", width=80)
+    tabla_empleados.column("contrasena", width=120)
     
-    # Asignar los scrollbars al Treeview
-    scrollbar_y.config(command=tablaEmpleados.yview)
-    scrollbar_x.config(command=tablaEmpleados.xview)
+    # Asignar los scrollbars al tabla_empleados
+    scrollbar_y.config(command=tabla_empleados.yview)
+    scrollbar_x.config(command=tabla_empleados.xview)
     
     # Botones para registrar, editar y eliminar empleados
     button_frame = tk.Frame(frame_principal)
@@ -212,27 +223,24 @@ def abrir_ventana_empleados():
     
     btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
     btn_eliminar.pack(side="left", padx=10)
-    
-    refresh_image = Image.open("refresh.png")  # Carga la imagen
-    refresh_image = refresh_image.resize((15, 15), Image.LANCZOS)  # Redimensiona según sea necesario
-    refresh_icon = ImageTk.PhotoImage(refresh_image)  # Convierte para usar en tkinter
-    
-    btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tablaEmpleados, "empleados"))
+
+    btn_refresh = tk.Button(button_frame, text="Refrescar vista", width=15, command=lambda:refresh_table(tabla_empleados, "empleados"))
     btn_refresh.pack(side="right", padx=10)
     
     
     # Conectar y mostrar los datos en la tabla
     connection, cursor = conectar_db()
     if connection and cursor:
-        cursor.execute("SELECT * FROM empleados ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
+        cursor.execute("SELECT * FROM empleados ORDER BY codigo ASC")
         rows = cursor.fetchall()
         for row in rows:
-            tablaEmpleados.insert("", "end", values=row)
+            tabla_empleados.insert("", "end", values=row)
         
         cursor.close()
         connection.close()
     
     centrar_ventana(ventana_empleados)
+
 
 def registrar_empleado():
     # Ventana para registrar nuevo empleado
@@ -283,7 +291,6 @@ def registrar_empleado():
             messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
             ventana_registro.lift()
     
-    refresh_table(tablaEmpleados, "empleados")
     
     # Botón para guardar doctor
     btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_empleado)
@@ -312,33 +319,32 @@ def abrir_ventana_doctores():
     scrollbar_x.pack(side="bottom", fill="x")
     
     # Definir columnas de la tabla doctores
-    global tablaDoctores
-    tablaDoctores = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "especialidad", "contrasena"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
-    tablaDoctores.pack(fill="both", expand=True)
+    tabla_doctores = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "especialidad", "contrasena"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+    tabla_doctores.pack(fill="both", expand=True)
     
     # Configuración de las columnas
-    tablaDoctores.heading("codigo", text="Código")
-    tablaDoctores.heading("nombre", text="Nombre")
-    tablaDoctores.heading("direccion", text="Dirección")
-    tablaDoctores.heading("telefono", text="Teléfono")
-    tablaDoctores.heading("fecha_nac", text="Fecha Nacimiento")
-    tablaDoctores.heading("sexo", text="Sexo")
-    tablaDoctores.heading("especialidad", text="Especialidad")
-    tablaDoctores.heading("contrasena", text="Contraseña")
+    tabla_doctores.heading("codigo", text="Código")
+    tabla_doctores.heading("nombre", text="Nombre")
+    tabla_doctores.heading("direccion", text="Dirección")
+    tabla_doctores.heading("telefono", text="Teléfono")
+    tabla_doctores.heading("fecha_nac", text="Fecha Nacimiento")
+    tabla_doctores.heading("sexo", text="Sexo")
+    tabla_doctores.heading("especialidad", text="Especialidad")
+    tabla_doctores.heading("contrasena", text="Contraseña")
     
     # Ajustar el tamaño de las columnas
-    tablaDoctores.column("codigo", width=80)
-    tablaDoctores.column("nombre", width=150)
-    tablaDoctores.column("direccion", width=200)
-    tablaDoctores.column("telefono", width=100)
-    tablaDoctores.column("fecha_nac", width=120)
-    tablaDoctores.column("sexo", width=80)
-    tablaDoctores.column("especialidad", width=80)
-    tablaDoctores.column("contrasena", width=120)
+    tabla_doctores.column("codigo", width=80)
+    tabla_doctores.column("nombre", width=150)
+    tabla_doctores.column("direccion", width=200)
+    tabla_doctores.column("telefono", width=100)
+    tabla_doctores.column("fecha_nac", width=120)
+    tabla_doctores.column("sexo", width=80)
+    tabla_doctores.column("especialidad", width=80)
+    tabla_doctores.column("contrasena", width=120)
     
     # Asignar los scrollbars al Treeview
-    scrollbar_y.config(command=tablaDoctores.yview)
-    scrollbar_x.config(command=tablaDoctores.xview)
+    scrollbar_y.config(command=tabla_doctores.yview)
+    scrollbar_x.config(command=tabla_doctores.xview)
     
     # Botones para registrar, editar y eliminar doctores
     button_frame = tk.Frame(frame_principal)
@@ -352,17 +358,17 @@ def abrir_ventana_doctores():
     
     btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
     btn_eliminar.pack(side="left", padx=10)
-    
-    btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tablaDoctores, "doctores"))
+
+    btn_refresh = tk.Button(button_frame, text="Refrescar vista", width=15, command=lambda:refresh_table(tabla_doctores, "doctores"))
     btn_refresh.pack(side="right", padx=10)
-    
+        
     # Conectar y mostrar los datos en la tabla
     connection, cursor = conectar_db()
     if connection and cursor:
         cursor.execute("SELECT * FROM doctores ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
         rows = cursor.fetchall()
         for row in rows:
-            tablaDoctores.insert("", "end", values=row)
+            tabla_doctores.insert("", "end", values=row)
         
         cursor.close()
         connection.close()
@@ -418,7 +424,6 @@ def registrar_doctor():
             messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
             ventana_registro.lift()
         
-        refresh_table(tablaDoctores, "doctores")
         
     # Botón para guardar doctor
     btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_doctor)
@@ -448,33 +453,32 @@ def abrir_ventana_pacientes():
     scrollbar_x.pack(side="bottom", fill="x")
     
     # Definir columnas de la tabla empleados
-    global tablaPacientes
-    tablaPacientes = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "edad", "estatura"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
-    tablaPacientes.pack(fill="both", expand=True)
+    tabla_pacientes = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "edad", "estatura"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+    tabla_pacientes.pack(fill="both", expand=True)
     
     # Configuración de las columnas
-    tablaPacientes.heading("codigo", text="Código")
-    tablaPacientes.heading("nombre", text="Nombre")
-    tablaPacientes.heading("direccion", text="Dirección")
-    tablaPacientes.heading("telefono", text="Teléfono")
-    tablaPacientes.heading("fecha_nac", text="Fecha Nacimiento")
-    tablaPacientes.heading("sexo", text="Sexo")
-    tablaPacientes.heading("edad", text="Edad")
-    tablaPacientes.heading("estatura", text="Estatura")
+    tabla_pacientes.heading("codigo", text="Código")
+    tabla_pacientes.heading("nombre", text="Nombre")
+    tabla_pacientes.heading("direccion", text="Dirección")
+    tabla_pacientes.heading("telefono", text="Teléfono")
+    tabla_pacientes.heading("fecha_nac", text="Fecha Nacimiento")
+    tabla_pacientes.heading("sexo", text="Sexo")
+    tabla_pacientes.heading("edad", text="Edad")
+    tabla_pacientes.heading("estatura", text="Estatura")
     
     # Ajustar el tamaño de las columnas
-    tablaPacientes.column("codigo", width=80)
-    tablaPacientes.column("nombre", width=150)
-    tablaPacientes.column("direccion", width=200)
-    tablaPacientes.column("telefono", width=100)
-    tablaPacientes.column("fecha_nac", width=120)
-    tablaPacientes.column("sexo", width=80)
-    tablaPacientes.column("edad", width=80)
-    tablaPacientes.column("estatura", width=80)
+    tabla_pacientes.column("codigo", width=80)
+    tabla_pacientes.column("nombre", width=150)
+    tabla_pacientes.column("direccion", width=200)
+    tabla_pacientes.column("telefono", width=100)
+    tabla_pacientes.column("fecha_nac", width=120)
+    tabla_pacientes.column("sexo", width=80)
+    tabla_pacientes.column("edad", width=80)
+    tabla_pacientes.column("estatura", width=80)
     
     # Asignar los scrollbars al Treeview
-    scrollbar_y.config(command=tablaPacientes.yview)
-    scrollbar_x.config(command=tablaPacientes.xview)
+    scrollbar_y.config(command=tabla_pacientes.yview)
+    scrollbar_x.config(command=tabla_pacientes.xview)
     
     # Botones para registrar, editar y eliminar empleados
     button_frame = tk.Frame(frame_principal)
@@ -488,9 +492,10 @@ def abrir_ventana_pacientes():
     
     btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
     btn_eliminar.pack(side="left", padx=10)
-    
-    btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tablaPacientes, "pacientes"))
+
+    btn_refresh = tk.Button(button_frame, text="Refrescar vista", width=15, command=lambda:refresh_table(tabla_pacientes, "pacientes"))
     btn_refresh.pack(side="right", padx=10)
+    
     
     # Conectar y mostrar los datos en la tabla
     connection, cursor = conectar_db()
@@ -498,7 +503,7 @@ def abrir_ventana_pacientes():
         cursor.execute("SELECT * FROM pacientes ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
         rows = cursor.fetchall()
         for row in rows:
-            tablaPacientes.insert("", "end", values=row)
+            tabla_pacientes.insert("", "end", values=row)
         
         cursor.close()
         connection.close()
@@ -534,7 +539,7 @@ def registrar_paciente():
                 if connection and cursor:
                     query = """
                         INSERT INTO pacientes (nombre, direccion, telefono, fecha_nac, sexo, edad, estatura)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s  )
                     """
                     cursor.execute(query, tuple(valores))
                     connection.commit()
@@ -558,9 +563,7 @@ def registrar_paciente():
         else:
             messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
             ventana_registro.lift()
-            
-        refresh_table(tablaPacientes, "pacientes")
-    
+                
     # Botón para guardar empleado
     btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_paciente)
     btn_guardar.pack(pady=10)
