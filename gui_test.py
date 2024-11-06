@@ -57,32 +57,46 @@ def refresh_table(treeview, tabla):
     else:
         print("Fallo")
 
+def cancelar(ventana_cerrar, ventana_mostrar):
+    ventana_cerrar.destroy()
+    ventana_mostrar.lift()
+
+
 # Ventana de login
 def login():
     def check_login():
         user = entry_user.get()
         password = entry_pass.get()
-
-        connection, cursor = conectar_db()
         
-        if connection and cursor:
-            if user == "admin" and password == "1234":
-                ventana_login.destroy()
-                abrir_menu_principal()
+        global username
         
-            else:
-                #Conuslta verificar empleado
-                cursor.execute("SELECT * FROM empleados where codigo =%s AND contrasena = %s", (user, password))
-                empleado = cursor.fetchone()
-
-                if empleado:
+        
+        try:
+            connection, cursor = conectar_db()
+            if connection and cursor:
+                if user == "admin" and password == "1234":
                     ventana_login.destroy()
+                    username = "admin"
                     abrir_menu_principal()
-                else:
-                    messagebox.showerror("Error", "Usuario o contraseña incorrectos")
 
-            cursor.close()
-            connection.close()
+                else:
+                    #Conuslta verificar empleado
+                    cursor.execute("SELECT * FROM empleados where codigo =%s AND contrasena = %s", (user, password))
+                    empleado = cursor.fetchone()
+
+                    if empleado:
+                        cursor.execute("SELECT nombre FROM empleados where codigo =%s", (user))
+                        resultado = cursor.fetchone()
+                        username = resultado[0] if resultado else ""
+                        ventana_login.destroy()
+                        abrir_menu_principal()
+                    else:
+                        messagebox.showerror("Error", "Usuario o contraseña incorrectos")
+
+                cursor.close()
+                connection.close()
+        except Exception:
+            messagebox.showerror("Error", "Usuario o contraseña incorrectos")
 
         else:
             messagebox.showerror("Error", "No se pudo conectar a la base de datos")
@@ -126,7 +140,9 @@ def abrir_menu_principal():
     frame_menu = tk.Frame(frame_centrado)
     frame_menu.grid(row=0, column=0, padx=20, pady=20)
     
-    label_title = tk.Label(frame_menu, text="Gestor de registros", font=("Arial", 24))
+    title_text = "Bienvenido " + username
+    
+    label_title = tk.Label(frame_menu, text=title_text, font=("Arial", 24))
     label_title.grid(row=0, column=0, columnspan=2, pady=20)
     
     btn1 = tk.Button(frame_menu, text="Empleados", command=abrir_ventana_empleados, width=20)
@@ -213,9 +229,6 @@ def abrir_ventana_empleados():
     btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
     btn_eliminar.pack(side="left", padx=10)
     
-    refresh_image = Image.open("refresh.png")  # Carga la imagen
-    refresh_image = refresh_image.resize((15, 15), Image.LANCZOS)  # Redimensiona según sea necesario
-    refresh_icon = ImageTk.PhotoImage(refresh_image)  # Convierte para usar en tkinter
     
     btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tablaEmpleados, "empleados"))
     btn_refresh.pack(side="right", padx=10)
@@ -283,12 +296,13 @@ def registrar_empleado():
             messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
             ventana_registro.lift()
     
+    
     refresh_table(tablaEmpleados, "empleados")
     
     # Botón para guardar doctor
     btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_empleado)
     btn_guardar.pack(pady=10, side="left")
-    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=ventana_registro.destroy)
+    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=lambda: cancelar(ventana_registro, ventana_empleados))
     btn_cancelar.pack(pady=10, side="right")
     
     centrar_ventana(ventana_registro, 4, 2, 3)
@@ -426,7 +440,7 @@ def registrar_doctor():
     # Botón para guardar doctor
     btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_doctor)
     btn_guardar.pack(pady=10, side="left")
-    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=ventana_registro.destroy)
+    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=lambda: cancelar(ventana_registro, ventana_doctores))
     btn_cancelar.pack(pady=10, side="right")
 
     centrar_ventana(ventana_registro, 4, 2, 3)
@@ -569,7 +583,7 @@ def registrar_paciente():
     # Botón para guardar empleado
     btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_paciente)
     btn_guardar.pack(pady=10, side="left")
-    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=ventana_registro.destroy)
+    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=lambda: cancelar(ventana_registro, ventana_pacientes))
     btn_cancelar.pack(pady=10, side="right")
 
     centrar_ventana(ventana_registro, 4, 2, 3)
@@ -579,6 +593,6 @@ def cerrar_sesion():
     ventana_menu.destroy()
     login()
 
-# Iniciar el programa con la ventana de login
 
+# Iniciar el programa con la ventana de login
 login()
