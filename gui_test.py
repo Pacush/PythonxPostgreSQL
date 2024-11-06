@@ -97,7 +97,7 @@ def login():
                         doctor = cursor.fetchone()
                     
                         if doctor:
-                            cursor.execute("SELECT nombre FROM doctor where codigo =%s", (user))
+                            cursor.execute("SELECT nombre FROM doctores where codigo =%s", (user))
                             resultado = cursor.fetchone()
                             username = resultado[0] if resultado else ""
                             ventana_login.destroy()
@@ -108,11 +108,14 @@ def login():
 
                 cursor.close()
                 connection.close()
+        
+            else:
+                messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+                
         except Exception:
             messagebox.showerror("Error", "Usuario o contraseña incorrectos")
 
-        else:
-            messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+            
     
     ventana_login = tk.Tk()
     ventana_login.title("Login")
