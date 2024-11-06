@@ -22,13 +22,13 @@ def conectar_db():
         return None, None
 
 # Función para centrar y redimensionar ventanas
-def centrar_ventana(ventana):
+def centrar_ventana(ventana, ancho_ventana_ratio, alto_ventana_ratio, pos_offset):
     ancho_pantalla = ventana.winfo_screenwidth()
     alto_pantalla = ventana.winfo_screenheight()
-    ancho_ventana = ancho_pantalla // 2
-    alto_ventana = alto_pantalla // 2
-    x_pos = (ancho_pantalla - ancho_ventana) // 2
-    y_pos = (alto_pantalla - alto_ventana) // 2
+    ancho_ventana = ancho_pantalla // ancho_ventana_ratio
+    alto_ventana = alto_pantalla // alto_ventana_ratio
+    x_pos = (ancho_pantalla - ancho_ventana) // pos_offset
+    y_pos = (alto_pantalla - alto_ventana) // pos_offset
     ventana.geometry(f"{ancho_ventana}x{alto_ventana}+{x_pos}+{y_pos}")
 
 def cargar_logo(ventana):
@@ -110,7 +110,7 @@ def login():
     btn_login = tk.Button(frame_login, text="Login", command=check_login)
     btn_login.pack(pady=10)
     
-    centrar_ventana(ventana_login)
+    centrar_ventana(ventana_login, 5, 3, 2)
     ventana_login.mainloop()
 
 # Ventana principal (menú)
@@ -145,7 +145,7 @@ def abrir_menu_principal():
     label_logo = tk.Label(frame_menu, image=logo_img)
     label_logo.grid(row=1, column=1, rowspan=3, padx=20, pady=10, sticky="e")
     
-    centrar_ventana(ventana_menu)
+    centrar_ventana(ventana_menu, 2, 2, 2)
     ventana_menu.mainloop()
 
 # Ventana de empleados
@@ -232,7 +232,7 @@ def abrir_ventana_empleados():
         cursor.close()
         connection.close()
     
-    centrar_ventana(ventana_empleados)
+    centrar_ventana(ventana_empleados, 2, 2, 3)
 
 def registrar_empleado():
     # Ventana para registrar nuevo empleado
@@ -287,12 +287,15 @@ def registrar_empleado():
     
     # Botón para guardar doctor
     btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_empleado)
-    btn_guardar.pack(pady=10)
-    centrar_ventana(ventana_registro)
+    btn_guardar.pack(pady=10, side="left")
+    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=ventana_registro.destroy)
+    btn_cancelar.pack(pady=10, side="right")
+    
+    centrar_ventana(ventana_registro, 4, 2, 3)
 
 # Ventana de doctores
 def abrir_ventana_doctores():
-    global ventana_doctores 
+    global ventana_doctores
     ventana_doctores = tk.Toplevel()
     ventana_doctores.title("Doctores")
     cargar_logo(ventana_doctores)
@@ -367,7 +370,7 @@ def abrir_ventana_doctores():
         cursor.close()
         connection.close()
     
-    centrar_ventana(ventana_doctores)
+    centrar_ventana(ventana_doctores, 2, 2, 3)
 
 # Ventana para registrar un nuevo doctor, reutilizando la de empleados
 def registrar_doctor():
@@ -422,9 +425,11 @@ def registrar_doctor():
         
     # Botón para guardar doctor
     btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_doctor)
-    btn_guardar.pack(pady=10)
+    btn_guardar.pack(pady=10, side="left")
+    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=ventana_registro.destroy)
+    btn_cancelar.pack(pady=10, side="right")
 
-    centrar_ventana(ventana_registro)
+    centrar_ventana(ventana_registro, 4, 2, 3)
 
 # Ventana de empleados
 def abrir_ventana_pacientes():
@@ -503,7 +508,7 @@ def abrir_ventana_pacientes():
         cursor.close()
         connection.close()
     
-    centrar_ventana(ventana_pacientes)
+    centrar_ventana(ventana_pacientes, 2, 2, 3)
 
 def registrar_paciente():
     # Ventana para registrar nuevo empleado
@@ -563,9 +568,11 @@ def registrar_paciente():
     
     # Botón para guardar empleado
     btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_paciente)
-    btn_guardar.pack(pady=10)
+    btn_guardar.pack(pady=10, side="left")
+    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=ventana_registro.destroy)
+    btn_cancelar.pack(pady=10, side="right")
 
-    centrar_ventana(ventana_registro)
+    centrar_ventana(ventana_registro, 4, 2, 3)
 
 
 def cerrar_sesion():
