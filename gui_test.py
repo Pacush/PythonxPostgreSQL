@@ -83,15 +83,28 @@ def login():
                     #Conuslta verificar empleado
                     cursor.execute("SELECT * FROM empleados where codigo =%s AND contrasena = %s", (user, password))
                     empleado = cursor.fetchone()
-
+                    
                     if empleado:
                         cursor.execute("SELECT nombre FROM empleados where codigo =%s", (user))
                         resultado = cursor.fetchone()
                         username = resultado[0] if resultado else ""
                         ventana_login.destroy()
                         abrir_menu_principal()
+
                     else:
-                        messagebox.showerror("Error", "Usuario o contraseña incorrectos")
+                        #Conuslta verificar empleado
+                        cursor.execute("SELECT * FROM doctores where codigo =%s AND contrasena = %s", (user, password))
+                        doctor = cursor.fetchone()
+                    
+                        if doctor:
+                            cursor.execute("SELECT nombre FROM doctor where codigo =%s", (user))
+                            resultado = cursor.fetchone()
+                            username = resultado[0] if resultado else ""
+                            ventana_login.destroy()
+                            abrir_menu_principal()
+
+                        else:
+                            messagebox.showerror("Error", "Usuario o contraseña incorrectos")
 
                 cursor.close()
                 connection.close()
