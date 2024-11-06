@@ -77,7 +77,7 @@ def login():
                 if user == "admin" and password == "1234":
                     ventana_login.destroy()
                     username = "admin"
-                    abrir_menu_principal()
+                    menu_principal_admin()
 
                 else:
                     #Conuslta verificar empleado
@@ -89,7 +89,7 @@ def login():
                         resultado = cursor.fetchone()
                         username = resultado[0] if resultado else ""
                         ventana_login.destroy()
-                        abrir_menu_principal()
+                        menu_principal_empleado()
 
                     else:
                         #Conuslta verificar empleado
@@ -101,7 +101,7 @@ def login():
                             resultado = cursor.fetchone()
                             username = resultado[0] if resultado else ""
                             ventana_login.destroy()
-                            abrir_menu_principal()
+                            menu_principal_doctor()
 
                         else:
                             messagebox.showerror("Error", "Usuario o contraseña incorrectos")
@@ -143,8 +143,8 @@ def login():
     centrar_ventana(ventana_login, 5, 3, 2)
     ventana_login.mainloop()
 
-# Ventana principal (menú)
-def abrir_menu_principal():
+# Ventana principal para admin (menú)
+def menu_principal_admin():
     global ventana_menu
     ventana_menu = tk.Tk()
     ventana_menu.title("Gestor de registros")
@@ -179,6 +179,74 @@ def abrir_menu_principal():
     
     centrar_ventana(ventana_menu, 2, 2, 2)
     ventana_menu.mainloop()
+
+def menu_principal_empleado():
+    global ventana_menu
+    ventana_menu = tk.Tk()
+    ventana_menu.title("Gestor de registros")
+    cargar_logo(ventana_menu)
+    
+    frame_centrado = tk.Frame(ventana_menu)
+    frame_centrado.pack(expand=True)
+
+    frame_menu = tk.Frame(frame_centrado)
+    frame_menu.grid(row=0, column=0, padx=20, pady=20)
+    
+    title_text = "Bienvenido " + username
+    
+    label_title = tk.Label(frame_menu, text=title_text, font=("Arial", 24))
+    label_title.grid(row=0, column=0, columnspan=2, pady=20)
+
+    btn1 = tk.Button(frame_menu, text="Pacientes", command=abrir_ventana_pacientes, width=20)
+    btn1.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+    
+    btn2 = tk.Button(frame_menu, text="Citas", width=20) #Falta command para citas
+    btn2.grid(row=2, column=0, padx=10, pady=10, sticky="w")
+    
+    btn3 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
+    btn3.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+    
+    logo_img = tk.PhotoImage(file="logo2.png")
+    label_logo = tk.Label(frame_menu, image=logo_img)
+    label_logo.grid(row=1, column=1, rowspan=3, padx=20, pady=10, sticky="e")
+    
+    centrar_ventana(ventana_menu, 2, 2, 2)
+    ventana_menu.mainloop()
+
+def menu_principal_doctor():
+    global ventana_menu
+    ventana_menu = tk.Tk()
+    ventana_menu.title("Gestor de registros")
+    cargar_logo(ventana_menu)
+    
+    frame_centrado = tk.Frame(ventana_menu)
+    frame_centrado.pack(expand=True)
+
+    frame_menu = tk.Frame(frame_centrado)
+    frame_menu.grid(row=0, column=0, padx=20, pady=20)
+    
+    title_text = "Bienvenido " + username
+    
+    label_title = tk.Label(frame_menu, text=title_text, font=("Arial", 24))
+    label_title.grid(row=0, column=0, columnspan=2, pady=20)
+
+    btn1 = tk.Button(frame_menu, text="Pacientes", command=abrir_ventana_pacientes, width=20)
+    btn1.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+    
+    btn2 = tk.Button(frame_menu, text="Citas", width=20) #Falta command para citas
+    btn2.grid(row=2, column=0, padx=10, pady=10, sticky="w")
+    
+    btn3 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
+    btn3.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+    
+    logo_img = tk.PhotoImage(file="logo2.png")
+    label_logo = tk.Label(frame_menu, image=logo_img)
+    label_logo.grid(row=1, column=1, rowspan=3, padx=20, pady=10, sticky="e")
+    
+    centrar_ventana(ventana_menu, 2, 2, 2)
+    ventana_menu.mainloop()
+
+
 
 # Ventana de empleados
 def abrir_ventana_empleados():
