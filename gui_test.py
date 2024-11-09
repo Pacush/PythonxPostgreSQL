@@ -61,7 +61,6 @@ def cancelar(ventana_cerrar, ventana_mostrar):
     ventana_cerrar.destroy()
     ventana_mostrar.lift()
 
-
 # Ventana de login
 def login():
     def check_login():
@@ -200,7 +199,7 @@ def menu_principal_empleado():
     btn1 = tk.Button(frame_menu, text="Pacientes", command=abrir_ventana_pacientes, width=20)
     btn1.grid(row=1, column=0, padx=10, pady=10, sticky="w")
     
-    btn2 = tk.Button(frame_menu, text="Citas", width=20) #Falta command para citas
+    btn2 = tk.Button(frame_menu, text="Citas", width=20, command=abrir_ventana_citas_empleados) #Falta command para citas
     btn2.grid(row=2, column=0, padx=10, pady=10, sticky="w")
     
     btn3 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
@@ -671,6 +670,80 @@ def registrar_paciente():
     btn_cancelar.pack(pady=10, side="right")
 
     centrar_ventana(ventana_registro, 4, 2, 3)
+
+def abrir_ventana_citas_empleados():
+    global ventana_citas_empleados
+    ventana_citas_empleados = tk.Toplevel()
+    ventana_citas_empleados.title("Empleados")
+    cargar_logo(ventana_citas_empleados)
+    
+    frame_principal = tk.Frame(ventana_citas_empleados)
+    frame_principal.pack(expand=True, fill="both", padx=10, pady=10)
+    
+    # Crear tabla con scrollbars
+    tree_frame = tk.Frame(frame_principal)
+    tree_frame.pack(fill="both", expand=True)
+    
+    # Scrollbars
+    scrollbar_y = tk.Scrollbar(tree_frame, orient="vertical")
+    scrollbar_y.pack(side="right", fill="y")
+    
+    scrollbar_x = tk.Scrollbar(tree_frame, orient="horizontal")
+    scrollbar_x.pack(side="bottom", fill="x")
+    
+    # Definir columnas de la tabla empleados
+    global tablaCitasEmpleados
+    tablaCitasEmpleados = ttk.Treeview(tree_frame, columns=("codigo", "paciente", "doctor", "fecha", "hora"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+    tablaCitasEmpleados.pack(fill="both", expand=True)
+    
+    # Configuración de las columnas
+    tablaCitasEmpleados.heading("codigo", text="Código")
+    tablaCitasEmpleados.heading("paciente", text="Paciente")
+    tablaCitasEmpleados.heading("doctor", text="Doctor")
+    tablaCitasEmpleados.heading("fecha", text="Fecha")
+    tablaCitasEmpleados.heading("Hora", text="Hora")
+    
+    # Ajustar el tamaño de las columnas
+    tablaCitasEmpleados.column("codigo", width=80)
+    tablaCitasEmpleados.column("paciente", width=150)
+    tablaCitasEmpleados.column("doctor", width=150)
+    tablaCitasEmpleados.column("fecha", width=80)
+    tablaCitasEmpleados.column("Hora", width=80)
+    
+    # Asignar los scrollbars al Treeview
+    scrollbar_y.config(command=tablaCitasEmpleados.yview)
+    scrollbar_x.config(command=tablaCitasEmpleados.xview)
+    
+    # Botones para registrar, editar y eliminar empleados
+    button_frame = tk.Frame(frame_principal)
+    button_frame.pack(fill="x", pady=10)
+    
+    btn_registrar = tk.Button(button_frame, text="Registrar", width=15)
+    btn_registrar.pack(side="left", padx=10)
+    
+    btn_editar = tk.Button(button_frame, text="Editar", width=15)
+    btn_editar.pack(side="left", padx=10)
+    
+    btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
+    btn_eliminar.pack(side="left", padx=10)
+    
+    
+    btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tablaCitasEmpleados, "citas"))
+    btn_refresh.pack(side="right", padx=10)
+    
+    
+    # Conectar y mostrar los datos en la tabla
+    connection, cursor = conectar_db()
+    if connection and cursor:
+        cursor.execute("SELECT * FROM citas ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
+        rows = cursor.fetchall()
+        for row in rows:
+            tablaCitasEmpleados.insert("", "end", values=row)
+        
+        cursor.close()
+        connection.close()
+    
+    centrar_ventana(ventana_citas_empleados, 2, 2, 3)
 
 
 def cerrar_sesion():
