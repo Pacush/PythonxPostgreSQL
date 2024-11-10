@@ -674,7 +674,7 @@ def registrar_paciente():
 def abrir_ventana_citas_empleados():
     global ventana_citas_empleados
     ventana_citas_empleados = tk.Toplevel()
-    ventana_citas_empleados.title("Empleados")
+    ventana_citas_empleados.title("Citas")
     cargar_logo(ventana_citas_empleados)
     
     frame_principal = tk.Frame(ventana_citas_empleados)
@@ -697,18 +697,18 @@ def abrir_ventana_citas_empleados():
     tablaCitasEmpleados.pack(fill="both", expand=True)
     
     # Configuración de las columnas
-    tablaCitasEmpleados.heading("codigo", text="Código")
+    tablaCitasEmpleados.heading("codigo", text="Código de cita")
     tablaCitasEmpleados.heading("paciente", text="Paciente")
     tablaCitasEmpleados.heading("doctor", text="Doctor")
     tablaCitasEmpleados.heading("fecha", text="Fecha")
-    tablaCitasEmpleados.heading("Hora", text="Hora")
+    tablaCitasEmpleados.heading("hora", text="Hora")
     
     # Ajustar el tamaño de las columnas
     tablaCitasEmpleados.column("codigo", width=80)
     tablaCitasEmpleados.column("paciente", width=150)
     tablaCitasEmpleados.column("doctor", width=150)
     tablaCitasEmpleados.column("fecha", width=80)
-    tablaCitasEmpleados.column("Hora", width=80)
+    tablaCitasEmpleados.column("hora", width=80)
     
     # Asignar los scrollbars al Treeview
     scrollbar_y.config(command=tablaCitasEmpleados.yview)
@@ -735,7 +735,7 @@ def abrir_ventana_citas_empleados():
     # Conectar y mostrar los datos en la tabla
     connection, cursor = conectar_db()
     if connection and cursor:
-        cursor.execute("SELECT * FROM citas ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
+        cursor.execute("SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora FROM citas INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo;")  # Asegúrate de que la tabla existe y tiene estos campos
         rows = cursor.fetchall()
         for row in rows:
             tablaCitasEmpleados.insert("", "end", values=row)
