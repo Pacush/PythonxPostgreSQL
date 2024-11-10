@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
-
+from tkcalendar import Calendar
 import psycopg2
 from PIL import Image, ImageTk
 
@@ -704,7 +704,7 @@ def abrir_ventana_citas_empleados():
     tablaCitasEmpleados.heading("hora", text="Hora")
     
     # Ajustar el tamaño de las columnas
-    tablaCitasEmpleados.column("codigo", width=80)
+    tablaCitasEmpleados.column("codigo", width=50)
     tablaCitasEmpleados.column("paciente", width=150)
     tablaCitasEmpleados.column("doctor", width=150)
     tablaCitasEmpleados.column("fecha", width=80)
