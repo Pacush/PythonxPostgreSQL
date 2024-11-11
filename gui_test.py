@@ -14,7 +14,7 @@ def conectar_db():
             user='postgres',
             password='12345',
             database='NucleoDeDiagnostico',
-            port='5432'
+            port ='5433'    #Cambiar dependiendo del puerto asignado en tu servidor
         )
         cursor = connection.cursor()
         return connection, cursor
@@ -112,8 +112,8 @@ def login():
             else:
                 messagebox.showerror("Error", "No se pudo conectar a la base de datos")
                 
-        except Exception:
-            messagebox.showerror("Error", "Usuario o contraseña incorrectos")
+        except Exception as e:
+            messagebox.showerror("Error", f"Usuario o contraseña incorrectos {e}")
 
             
     
@@ -719,7 +719,7 @@ def abrir_ventana_citas_empleados():
     button_frame = tk.Frame(frame_principal)
     button_frame.pack(fill="x", pady=10)
     
-    btn_registrar = tk.Button(button_frame, text="Registrar", width=15)
+    btn_registrar = tk.Button(button_frame, text="Registrar", width=15, command=abrir_ventana_registrar_cita)
     btn_registrar.pack(side="left", padx=10)
     
     btn_editar = tk.Button(button_frame, text="Editar", width=15)
@@ -747,26 +747,73 @@ def abrir_ventana_citas_empleados():
     centrar_ventana(ventana_citas_empleados, 2, 2, 3)
 
 
-def obtener_cita(calendario, caja_horas):
-    # Obtener la fecha seleccionada en el calendario
-    selected_date = calendario.selection_get()
+def abrir_ventana_registrar_cita():
+    # Crear una nueva ventana más pequeña para registrar citas
+    ventana_registrar_cita = tk.Toplevel()
+    ventana_registrar_cita.title("Registrar Cita")
+    centrar_ventana(ventana_registrar_cita, 3, 2, 2)
 
-    # Obtener la hora seleccionada (en formato 1, 2, 3, etc.) y agregar ":00" para mostrar la hora completa
-    time = caja_horas.get()
-    time = time[0]
+    frame_registro = tk.Frame(ventana_registrar_cita)
+    frame_registro.pack(padx=10, pady=10, fill="both", expand=True)
+
+
+    # Conectar y obtener nombres de pacientes y doctores
+    try:
+        connection, cursor = conectar_db()
+        if connection and cursor:
+            # Obtener pacientes
+            cursor.execute("SELECT codigo, nombre FROM pacientes")
+            pacientes = cursor.fetchall()
+            nombres_pacientes = [row[1] for row in pacientes]
+            global pacientes_dic
+            pacientes_dic = {row[1]: row[0] for row in pacientes}
+
+            # Obtener doctores (incluyendo código y nombre)
+            cursor.execute("SELECT codigo, nombre FROM doctores")
+            doctores = cursor.fetchall()
+            nombres_doctores = [row[1] for row in doctores]  # Lista de nombres
+            global doctores_dict
+            doctores_dict = {row[1]: row[0] for row in doctores}  # Diccionario {nombre: código}
+
+            cursor.close()
+            connection.close()
+        else:
+            raise Exception("No se pudo conectar a la base de datos")
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo cargar los datos: {e}")
+        return
+
+    # Etiquetas y listas desplegables para seleccionar paciente y doctor
+    tk.Label(frame_registro, text="Seleccione Paciente:").pack(pady=5)
+    combo_pacientes = ttk.Combobox(frame_registro, values=nombres_pacientes, width=30)
+    combo_pacientes.pack()
+
+    tk.Label(frame_registro, text="Seleccione Doctor:").pack(pady=5)
+    combo_doctores = ttk.Combobox(frame_registro, values=nombres_doctores, width=30)
+    combo_doctores.pack()
+
+    # Botón para revisar disponibilidad
+    def revisar_disponibilidad():
+        if combo_pacientes.get() and combo_doctores.get():
+            doctor_seleccionado = combo_doctores.get()
+            codigo_doctor = doctores_dict.get(doctor_seleccionado)  # Obtener el código del doctor
+            paciente_seleccionado = combo_pacientes.get()
+            codigo_paciente = pacientes_dic.get(paciente_seleccionado)
+            abrir_ventana_calendario_citas(codigo_doctor, codigo_paciente)  # Obtener el código del paciente
+        else:
+            messagebox.showwarning("Advertencia", "Debe seleccionar un paciente y un doctor antes de continuar.")
+
     
-    selected_time = f"{time}:00"
+    btn_revisar_disponibilidad = tk.Button(frame_registro, text="Revisar Disponibilidad", command=revisar_disponibilidad)
+    btn_revisar_disponibilidad.pack(pady=20)
 
-    # Combinar la fecha y hora seleccionadas
-    #appointment = f"Cita agendada para: {selected_date} a las {selected_time}"
 
-    # Mostrar la cita agendada
-    #appointment_label.config(text=appointment)
-
-def abrir_ventana_calenario_citas():
+def abrir_ventana_calendario_citas(codigo_doctor, codigo_paciente):
     # Crear la ventana principal
     ventana_calendario = tk.Tk()
     ventana_calendario.title('Registrar cita')
+    centrar_ventana(ventana_calendario, 3, 2, 2)
+
 
     # Calendario
     cal = Calendar(ventana_calendario, selectmode='day', year=2024, month=11, day=20)
@@ -782,12 +829,69 @@ def abrir_ventana_calenario_citas():
     hour_combobox.pack(pady=20)
 
     # Botón para agendar cita
-    tk.Button(ventana_calendario, text='Agendar Cita', command=lambda: obtener_cita(cal, hour_combobox)).pack(pady=20)
+    tk.Button(ventana_calendario, text='Agendar Cita', command=lambda: obtener_cita(cal, hour_combobox, codigo_doctor, codigo_paciente)).pack(pady=20)
 
     # Etiqueta para mostrar la cita agendada
-    appointment_label
     appointment_label = tk.Label(ventana_calendario, text="", font=("Helvetica", 12))
     appointment_label.pack(pady=20)
+
+
+def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
+    # Obtener la fecha seleccionada en el calendario
+    fecha_seleccionada = calendario.selection_get()
+
+    hora = caja_horas.get()
+    hora = hora[0]
+    hora_seleccionada = f"{hora}:00:00"
+
+
+    try:
+        connection, cursor = conectar_db()
+        print(fecha_seleccionada, hora_seleccionada, codigo_doctor)
+        if connection and cursor:
+            cursor.execute(
+                """
+                SELECT * FROM citas
+                WHERE fecha = %s AND hora = %s AND codigo_doctor = %s
+                """,
+                (fecha_seleccionada, hora_seleccionada, codigo_doctor)
+            )
+            citas_existentes = cursor.fetchall()
+            if citas_existentes:
+                messagebox.showerror("No Disponible", "El doctor no está disponible en esa fecha y hora.")
+            else:
+                cursor.execute("SELECT nombre FROM pacientes WHERE codigo = %s", (codigo_paciente))
+                nombre_paciente = cursor.fetchone()
+                #nombre_paciente = resultado1[0] if resultado1 else ""
+
+                cursor.execute("SELECT nombre FROM pacientes WHERE codigo = %s", (codigo_doctor))
+                nombre_doctor = cursor.fetchone()
+                #nombre_doctor = resultado2[0] if resultado2 else ""
+
+                confirmacion = messagebox.askyesno(
+                    "Confirmar Cita",
+                    f"La cita está disponible. ¿Deseas agendar la cita para el paciente {nombre_paciente} con el doctor {nombre_doctor} el día {fecha_seleccionada} a las {hora_seleccionada}?"
+                )
+                if confirmacion:
+                    # Código para registrar la cita en la base de datos
+                    cursor.execute(
+                        """
+                        INSERT INTO citas (codigo_paciente, codigo_doctor, fecha, hora)
+                        VALUES (%s, %s, %s, %s)
+                        """,
+                        (codigo_paciente, codigo_doctor, fecha_seleccionada, hora_seleccionada)
+                    )
+                    connection.commit()
+                    messagebox.showinfo("Cita Registrada", "La cita ha sido agendada exitosamente.")
+
+
+
+            cursor.close()
+            connection.close()
+        else:
+            raise Exception("No se pudo conectar a la base de datos")
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo verificar la disponibilidad: {e}")
 
 
 
