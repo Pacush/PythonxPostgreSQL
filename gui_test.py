@@ -840,33 +840,29 @@ def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
     # Obtener la fecha seleccionada en el calendario
     fecha_seleccionada = calendario.selection_get()
 
-    hora = caja_horas.get()
-    hora = hora[0]
-    hora_seleccionada = f"{hora}:00:00"
+    hora = caja_horas.get()  # Esto devuelve "9:00 - 10:00" como string
+    
+    # Extraer la primera parte de la hora (antes del guion)
+    hora_inicial = hora.split(' - ')[0]  # Obtiene "9:00" de "9:00 - 10:00"
+    hora_seleccionada = f"{hora_inicial}:00"  # Formatear correctamente la hora
 
 
     try:
         connection, cursor = conectar_db()
-        print(fecha_seleccionada, hora_seleccionada, codigo_doctor)
+        
         if connection and cursor:
-            cursor.execute(
-                """
-                SELECT * FROM citas
-                WHERE fecha = %s AND hora = %s AND codigo_doctor = %s
-                """,
-                (fecha_seleccionada, hora_seleccionada, codigo_doctor)
-            )
+            cursor.execute(f"SELECT * FROM citas WHERE fecha = '{fecha_seleccionada}' AND hora = '{hora_seleccionada}' AND codigo_doctor = {codigo_doctor}")
             citas_existentes = cursor.fetchall()
             if citas_existentes:
                 messagebox.showerror("No Disponible", "El doctor no está disponible en esa fecha y hora.")
             else:
-                cursor.execute("SELECT nombre FROM pacientes WHERE codigo = %s", (codigo_paciente))
+                cursor.execute(f"SELECT nombre FROM pacientes WHERE codigo = {codigo_paciente}")
                 nombre_paciente = cursor.fetchone()
-                #nombre_paciente = resultado1[0] if resultado1 else ""
+                
 
-                cursor.execute("SELECT nombre FROM pacientes WHERE codigo = %s", (codigo_doctor))
+                cursor.execute(f"SELECT nombre FROM pacientes WHERE codigo = {codigo_doctor}")
                 nombre_doctor = cursor.fetchone()
-                #nombre_doctor = resultado2[0] if resultado2 else ""
+                
 
                 confirmacion = messagebox.askyesno(
                     "Confirmar Cita",
@@ -875,11 +871,10 @@ def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
                 if confirmacion:
                     # Código para registrar la cita en la base de datos
                     cursor.execute(
-                        """
+                        f"""
                         INSERT INTO citas (codigo_paciente, codigo_doctor, fecha, hora)
-                        VALUES (%s, %s, %s, %s)
-                        """,
-                        (codigo_paciente, codigo_doctor, fecha_seleccionada, hora_seleccionada)
+                        VALUES ({codigo_paciente}, {codigo_doctor}, '{fecha_seleccionada}', '{hora_seleccionada}')
+                        """
                     )
                     connection.commit()
                     messagebox.showinfo("Cita Registrada", "La cita ha sido agendada exitosamente.")
@@ -892,6 +887,7 @@ def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
             raise Exception("No se pudo conectar a la base de datos")
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo verificar la disponibilidad: {e}")
+        print(e)
 
 
 
