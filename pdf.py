@@ -10,6 +10,7 @@ options = {
     'enable-javascript': None
 }
 
+# Valores de prueba. Estos deben ser obtenidos desde la consulta
 nombre_paciente = "José"
 edad_paciente = 20
 estatura_paciente = 1.70
