@@ -52,7 +52,7 @@ def refresh_table(treeview, tabla):
         if(tabla != "citas"):
             cursor.execute(f"SELECT * FROM {tabla} ORDER BY codigo ASC")
         else:
-            cursor.execute(f"SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora FROM citas INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo;")
+            cursor.execute(f"SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora FROM citas INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo ORDER BY codigo ASC;")
         
         rows = cursor.fetchall()
         for row in rows:
@@ -119,7 +119,7 @@ def login():
                 messagebox.showerror("Error", "No se pudo conectar a la base de datos")
                 
         except Exception as e:
-            messagebox.showerror("Error", f"Usuario o contraseña incorrectos {e}")
+            messagebox.showerror("Error", "Usuario o contraseña incorrectos")
 
             
     
@@ -160,28 +160,34 @@ def menu_principal_admin():
     frame_centrado.pack(expand=True)
 
     frame_menu = tk.Frame(frame_centrado)
-    frame_menu.grid(row=0, column=0, padx=20, pady=20)
+    frame_menu.grid(row=0, column=0, padx=20, pady=2)
     
     title_text = "Bienvenido " + username
     
     label_title = tk.Label(frame_menu, text=title_text, font=("Arial", 24))
-    label_title.grid(row=0, column=0, columnspan=2, pady=20)
+    label_title.grid(row=0, column=0, columnspan=2, pady=2)
     
     btn1 = tk.Button(frame_menu, text="Empleados", command=abrir_ventana_empleados, width=20)
-    btn1.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+    btn1.grid(row=1, column=0, padx=10, pady=2, sticky="w")
     
     btn2 = tk.Button(frame_menu, text="Doctores", command=abrir_ventana_doctores , width=20)
-    btn2.grid(row=2, column=0, padx=10, pady=10, sticky="w")
+    btn2.grid(row=2, column=0, padx=10, pady=2, sticky="w")
 
     btn3 = tk.Button(frame_menu, text="Pacientes", command=abrir_ventana_pacientes, width=20)
-    btn3.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+    btn3.grid(row=3, column=0, padx=10, pady=2, sticky="w")
     
-    btn4 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
-    btn4.grid(row=4, column=0, padx=10, pady=10, sticky="w")
+    btn4 = tk.Button(frame_menu, text="Citas", width=20, command=abrir_ventana_citas_empleados)
+    btn4.grid(row=4, column=0, padx=10, pady=2, sticky="w")
+    
+    btn5 = tk.Button(frame_menu, text="Medicamentos", width=20)
+    btn5.grid(row=5, column=0, padx=10, pady=2, sticky="w")
+    
+    btn6 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
+    btn6.grid(row=6, column=0, padx=10, pady=2, sticky="w")
     
     logo_img = tk.PhotoImage(file="logo2.png")
     label_logo = tk.Label(frame_menu, image=logo_img)
-    label_logo.grid(row=1, column=1, rowspan=3, padx=20, pady=10, sticky="e")
+    label_logo.grid(row=1, column=1, rowspan=6, padx=20, pady=10, sticky="e")
     
     centrar_ventana(ventana_menu, 2, 2, 2)
     ventana_menu.mainloop()
@@ -742,7 +748,7 @@ def abrir_ventana_citas_empleados():
     # Conectar y mostrar los datos en la tabla
     connection, cursor = conectar_db()
     if connection and cursor:
-        cursor.execute("SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora FROM citas INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo;")  # Asegúrate de que la tabla existe y tiene estos campos
+        cursor.execute("SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora FROM citas INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo ORDER BY codigo ASC;")  # Asegúrate de que la tabla existe y tiene estos campos
         rows = cursor.fetchall()
         for row in rows:
             tablaCitasEmpleados.insert("", "end", values=row)
@@ -835,7 +841,7 @@ def abrir_ventana_calendario_citas(codigo_doctor, codigo_paciente):
     hour_label.pack(pady=5)
 
     # Combobox para seleccionar la hora (en formato 1:00, 2:00, ..., 12:00)
-    hour_combobox = ttk.Combobox(ventana_calendario, values=[f"{i}:00 - {i + 1}:00" for i in range(9, 20)], width=12)
+    hour_combobox = ttk.Combobox(ventana_calendario, values=[f"{i}:00 - {i + 1}:00" for i in range(9, 21)], width=12)
     hour_combobox.set("9:00 - 10:00")  # valor por defecto
     hour_combobox.pack(pady=20)
 
@@ -904,7 +910,7 @@ def abrir_ventana_calendario_edicion(codigo_cita):
     cal.pack(pady=20)
 
     # Combobox para seleccionar la hora
-    hour_combobox = ttk.Combobox(ventana_calendario_edicion, values=[f"{i}:00 - {i + 1}:00" for i in range(9, 20)], width=12)
+    hour_combobox = ttk.Combobox(ventana_calendario_edicion, values=[f"{i}:00 - {i + 1}:00" for i in range(9, 21)], width=12)
     hour_combobox.set("9:00 - 10:00")  # Valor por defecto
     hour_combobox.pack(pady=20)
 
