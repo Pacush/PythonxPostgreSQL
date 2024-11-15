@@ -179,7 +179,7 @@ def menu_principal_admin():
     btn4 = tk.Button(frame_menu, text="Citas", width=20, command=abrir_ventana_citas_empleados)
     btn4.grid(row=4, column=0, padx=10, pady=2, sticky="w")
     
-    btn5 = tk.Button(frame_menu, text="Medicamentos", width=20)
+    btn5 = tk.Button(frame_menu, text="Medicamentos", width=20, command=abrir_ventana_medicamentos)
     btn5.grid(row=5, column=0, padx=10, pady=2, sticky="w")
     
     btn6 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
@@ -257,8 +257,6 @@ def menu_principal_doctor():
     
     centrar_ventana(ventana_menu, 2, 2, 2)
     ventana_menu.mainloop()
-
-
 
 # Ventana de empleados
 def abrir_ventana_empleados():
@@ -758,7 +756,6 @@ def abrir_ventana_citas_empleados():
     
     centrar_ventana(ventana_citas_empleados, 2, 2, 3)
 
-
 def abrir_ventana_registrar_cita():
     # Crear una nueva ventana más pequeña para registrar citas
     global ventana_registrar_cita
@@ -822,7 +819,6 @@ def abrir_ventana_registrar_cita():
     btn_revisar_disponibilidad = tk.Button(frame_registro, text="Revisar Disponibilidad", command=revisar_disponibilidad)
     btn_revisar_disponibilidad.pack(pady=20)
 
-
 def abrir_ventana_calendario_citas(codigo_doctor, codigo_paciente):
     # Crear la ventana principal
     global ventana_calendario
@@ -851,7 +847,6 @@ def abrir_ventana_calendario_citas(codigo_doctor, codigo_paciente):
     # Etiqueta para mostrar la cita agendada
     appointment_label = tk.Label(ventana_calendario, text="", font=("Helvetica", 12))
     appointment_label.pack(pady=20)
-
 
 def abrir_ventana_editar_cita():
     # Crear una ventana para seleccionar la cita a editar
@@ -896,7 +891,6 @@ def continuar_edicion_cita(codigo_cita):
     ventana_editar_cita.destroy()
     abrir_ventana_calendario_edicion(codigo_cita)
 
-
 def abrir_ventana_calendario_edicion(codigo_cita):
     # Crear la ventana de edición de calendario
     global ventana_calendario_edicion
@@ -916,7 +910,6 @@ def abrir_ventana_calendario_edicion(codigo_cita):
 
     # Botón para confirmar la edición
     tk.Button(ventana_calendario_edicion, text='Confirmar Edición', command=lambda: confirmar_edicion_cita(cal, hour_combobox, codigo_cita)).pack(pady=20)
-
 
 def confirmar_edicion_cita(calendario, caja_horas, codigo_cita):
     fecha_seleccionada = calendario.selection_get()
@@ -962,8 +955,6 @@ def confirmar_edicion_cita(calendario, caja_horas, codigo_cita):
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo editar la cita: {e}")
         print(e)
-
-
 
 def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
     # Obtener la fecha seleccionada en el calendario
@@ -1031,8 +1022,138 @@ def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
         messagebox.showerror("Error", f"No se pudo verificar la disponibilidad: {e}")
         print(e)
 
+def abrir_ventana_medicamentos():
+    global ventana_medicamentos
+    ventana_medicamentos = tk.Toplevel()
+    ventana_medicamentos.title("Medicamentos")
+    cargar_logo(ventana_medicamentos)
+    
+    frame_principal = tk.Frame(ventana_medicamentos)
+    frame_principal.pack(expand=True, fill="both", padx=10, pady=10)
+    
+    # Crear tabla con scrollbars
+    tree_frame = tk.Frame(frame_principal)
+    tree_frame.pack(fill="both", expand=True)
+    
+    # Scrollbars
+    scrollbar_y = tk.Scrollbar(tree_frame, orient="vertical")
+    scrollbar_y.pack(side="right", fill="y")
+    
+    scrollbar_x = tk.Scrollbar(tree_frame, orient="horizontal")
+    scrollbar_x.pack(side="bottom", fill="x")
+    
+    # Definir columnas de la tabla empleados
+    global tabla_medicamentos
+    tabla_medicamentos = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "via_adm", "presentacion", "fecha_cad"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+    tabla_medicamentos.pack(fill="both", expand=True)
+    
+    # Configuración de las columnas
+    tabla_medicamentos.heading("codigo", text="Código")
+    tabla_medicamentos.heading("nombre", text="Nombre")
+    tabla_medicamentos.heading("via_adm", text="Via de administración")
+    tabla_medicamentos.heading("presentacion", text="Presentación")
+    tabla_medicamentos.heading("fecha_cad", text="Fecha de caducidad")
+    
+    # Ajustar el tamaño de las columnas
+    tabla_medicamentos.column("codigo", width=50)
+    tabla_medicamentos.column("nombre", width=200)
+    tabla_medicamentos.column("via_adm", width=80)
+    tabla_medicamentos.column("presentacion", width=80)
+    tabla_medicamentos.column("fecha_cad", width=80)
+    
+    # Asignar los scrollbars al Treeview
+    scrollbar_y.config(command=tabla_medicamentos.yview)
+    scrollbar_x.config(command=tabla_medicamentos.xview)
+    
+    # Botones para registrar, editar y eliminar empleados
+    button_frame = tk.Frame(frame_principal)
+    button_frame.pack(fill="x", pady=10)
+    
+    btn_registrar = tk.Button(button_frame, text="Registrar", width=15, command=registrar_medicamento)
+    btn_registrar.pack(side="left", padx=10)
+    
+    btn_editar = tk.Button(button_frame, text="Editar", width=15)
+    btn_editar.pack(side="left", padx=10)
+    
+    btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
+    btn_eliminar.pack(side="left", padx=10)
+    
+    
+    btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tabla_medicamentos, "medicamentos"))
+    btn_refresh.pack(side="right", padx=10)
+    
+    
+    # Conectar y mostrar los datos en la tabla
+    connection, cursor = conectar_db()
+    if connection and cursor:
+        cursor.execute("SELECT * FROM medicamentos ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
+        rows = cursor.fetchall()
+        for row in rows:
+            tabla_medicamentos.insert("", "end", values=row)
+        
+        cursor.close()
+        connection.close()
+    
+    centrar_ventana(ventana_medicamentos, 2, 2, 3)
 
+def registrar_medicamento():
+    # Ventana para registrar nuevo empleado
+    ventana_registro_medicamento = tk.Toplevel()
+    ventana_registro_medicamento.title("Registrar nuevo medicamento")
+    cargar_logo(ventana_registro_medicamento)
+    
+    frame_registro = tk.Frame(ventana_registro_medicamento)
+    frame_registro.pack(padx=10, pady=10)
 
+    # Campos para registrar empleado
+    labels = ["Nombre", "Via de administración", "Presentación", "Fecha de caducidad (YYYY-MM-DD)"]
+    entries = []
+
+    for label_text in labels:
+        label = tk.Label(frame_registro, text=label_text)
+        label.pack(pady=2)
+        entry = tk.Entry(frame_registro)
+        entry.pack(pady=2)
+        entries.append(entry)
+
+    def guardar_medicamento():
+        # Recuperar los valores de los campos
+        valores = [entry.get() for entry in entries]
+        if all(valores):
+            try:
+                connection, cursor = conectar_db()
+                if connection and cursor:
+                    query = """
+                        INSERT INTO medicamentos (nombre, via_adm, presentacion, fecha_cad)
+                        VALUES (%s, %s, %s, %s)
+                    """
+                    cursor.execute(query, tuple(valores))
+                    connection.commit()
+                    messagebox.showinfo("Éxito", "Medicamento registrado exitosamente")
+                    cursor.close()
+                    connection.close()
+                    ventana_registro_medicamento.destroy()  # Cerrar la ventana de registro después de guardar
+                    ventana_medicamentos.lift()
+                else:
+                    messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+                    ventana_registro_medicamento.destroy()
+                    ventana_medicamentos.lift()
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo registrar el medicamento: {e}")
+                ventana_registro_medicamento.lift()
+        else:
+            messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
+            ventana_registro_medicamento.lift()
+
+        refresh_table(tabla_medicamentos, "medicamentos")
+    
+    # Botón para guardar doctor
+    btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_medicamento)
+    btn_guardar.pack(pady=10, side="left")
+    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=lambda: cancelar(ventana_registro_medicamento, ventana_medicamentos))
+    btn_cancelar.pack(pady=10, side="right")
+    
+    centrar_ventana(ventana_registro_medicamento, 4, 2, 3)
 
 
 def cerrar_sesion():
