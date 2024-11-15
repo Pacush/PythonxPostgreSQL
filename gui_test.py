@@ -872,7 +872,7 @@ def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
                 cursor.execute(f"SELECT nombre FROM pacientes WHERE codigo = {codigo_paciente}")
                 nombre_paciente = cursor.fetchone()
                 
-                cursor.execute(f"SELECT nombre FROM pacientes WHERE codigo = {codigo_doctor}")
+                cursor.execute(f"SELECT nombre FROM doctores WHERE codigo = {codigo_doctor}")
                 nombre_doctor = cursor.fetchone()
                 
                 confirmacion = messagebox.askyesno(
