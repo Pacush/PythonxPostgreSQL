@@ -728,7 +728,7 @@ def abrir_ventana_citas_empleados():
     btn_registrar = tk.Button(button_frame, text="Registrar", width=15, command=abrir_ventana_registrar_cita)
     btn_registrar.pack(side="left", padx=10)
     
-    btn_editar = tk.Button(button_frame, text="Editar", width=15)
+    btn_editar = tk.Button(button_frame, text="Editar", width=15, command=abrir_ventana_editar_cita)
     btn_editar.pack(side="left", padx=10)
     
     btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
@@ -758,6 +758,7 @@ def abrir_ventana_registrar_cita():
     global ventana_registrar_cita
     ventana_registrar_cita = tk.Toplevel()
     ventana_registrar_cita.title("Registrar Cita")
+    cargar_logo(ventana_registrar_cita)
 
     frame_registro = tk.Frame(ventana_registrar_cita)
     frame_registro.pack(padx=10, pady=10, fill="both", expand=True)
@@ -822,6 +823,7 @@ def abrir_ventana_calendario_citas(codigo_doctor, codigo_paciente):
     ventana_calendario = tk.Tk()
     ventana_calendario.title('Registrar cita')
     centrar_ventana(ventana_calendario, 5, 3, 2)
+    cargar_logo(ventana_calendario)
 
 
     # Calendario
@@ -843,6 +845,118 @@ def abrir_ventana_calendario_citas(codigo_doctor, codigo_paciente):
     # Etiqueta para mostrar la cita agendada
     appointment_label = tk.Label(ventana_calendario, text="", font=("Helvetica", 12))
     appointment_label.pack(pady=20)
+
+
+def abrir_ventana_editar_cita():
+    # Crear una ventana para seleccionar la cita a editar
+    global ventana_editar_cita
+    ventana_editar_cita = tk.Toplevel()
+    ventana_editar_cita.title("Editar Cita")
+    frame_editar = tk.Frame(ventana_editar_cita)
+    frame_editar.pack(padx=10, pady=10)
+    cargar_logo(ventana_editar_cita)
+    centrar_ventana(ventana_editar_cita, 7, 7, 3)
+
+    # Conectar y obtener los códigos de citas existentes
+    try:
+        connection, cursor = conectar_db()
+        if connection and cursor:
+            cursor.execute("SELECT codigo FROM citas")
+            citas = cursor.fetchall()
+            lista_citas = [str(cita[0]) for cita in citas]  # Convertir los códigos a string
+
+            cursor.close()
+            connection.close()
+        else:
+            raise Exception("No se pudo conectar a la base de datos")
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo cargar los datos de las citas: {e}")
+        return
+
+    # Mostrar la lista de citas
+    tk.Label(frame_editar, text="Seleccione el ID de la cita a editar:").pack(pady=5)
+    combo_citas = ttk.Combobox(frame_editar, values=lista_citas)
+    combo_citas.pack()
+
+    # Botón para continuar con la edición
+    tk.Button(frame_editar, text="Continuar", command=lambda: continuar_edicion_cita(combo_citas.get())).pack(pady=20)
+
+def continuar_edicion_cita(codigo_cita):
+    if not codigo_cita:
+        messagebox.showwarning("Advertencia", "Debe seleccionar una cita.")
+        return
+    
+    # Cerrar la ventana de selección de cita
+    ventana_editar_cita.destroy()
+    abrir_ventana_calendario_edicion(codigo_cita)
+
+
+def abrir_ventana_calendario_edicion(codigo_cita):
+    # Crear la ventana de edición de calendario
+    global ventana_calendario_edicion
+    ventana_calendario_edicion = tk.Toplevel()
+    ventana_calendario_edicion.title('Editar Cita')
+    cargar_logo(ventana_calendario_edicion)
+    centrar_ventana(ventana_calendario_edicion, 5, 3, 2)
+
+    # Calendario
+    cal = Calendar(ventana_calendario_edicion, selectmode='day', year=2024, month=11, day=20)
+    cal.pack(pady=20)
+
+    # Combobox para seleccionar la hora
+    hour_combobox = ttk.Combobox(ventana_calendario_edicion, values=[f"{i}:00 - {i + 1}:00" for i in range(9, 20)], width=12)
+    hour_combobox.set("9:00 - 10:00")  # Valor por defecto
+    hour_combobox.pack(pady=20)
+
+    # Botón para confirmar la edición
+    tk.Button(ventana_calendario_edicion, text='Confirmar Edición', command=lambda: confirmar_edicion_cita(cal, hour_combobox, codigo_cita)).pack(pady=20)
+
+
+def confirmar_edicion_cita(calendario, caja_horas, codigo_cita):
+    fecha_seleccionada = calendario.selection_get()
+    hora = caja_horas.get()
+    hora_inicial = hora.split(' - ')[0]  # Extraer "9:00" de "9:00 - 10:00"
+    hora_seleccionada = f"{hora_inicial}:00"
+
+    sabado_o_domingo = fecha_seleccionada.weekday() in (5, 6)
+
+    try:
+        connection, cursor = conectar_db()
+        if connection and cursor:
+            # Verificar si hay una cita existente en esa fecha/hora para otro paciente
+            cursor.execute(f"SELECT codigo_doctor FROM citas WHERE codigo = {codigo_cita}")
+            resultado = cursor.fetchone()
+            codigo_doctor = resultado[0] if resultado else ""
+            
+            cursor.execute(f"SELECT * FROM citas WHERE fecha = '{fecha_seleccionada}' AND hora = '{hora_seleccionada}' AND codigo_doctor = {codigo_doctor}")
+            citas_existentes = cursor.fetchall()
+
+            if citas_existentes or sabado_o_domingo:
+                messagebox.showerror("No Disponible", "El doctor no está disponible en esa fecha y hora.")
+            else:
+                # Confirmar actualización
+                confirmacion = messagebox.askyesno(
+                    "Confirmar Edición",
+                    f"¿Deseas actualizar la cita con código {codigo_cita} a la nueva fecha {fecha_seleccionada} y hora {hora_seleccionada}?"
+                )
+                if confirmacion:
+                    cursor.execute(
+                        f"UPDATE citas SET fecha = '{fecha_seleccionada}', hora = '{hora_seleccionada}' WHERE codigo = {codigo_cita}"
+                    )
+                    connection.commit()
+                    messagebox.showinfo("Cita Actualizada", "La cita ha sido actualizada exitosamente.")
+                    ventana_calendario_edicion.destroy()
+                    ventana_citas_empleados.lift()
+                    refresh_table(tablaCitasEmpleados, "citas")
+
+            cursor.close()
+            connection.close()
+        else:
+            raise Exception("No se pudo conectar a la base de datos")
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo editar la cita: {e}")
+        print(e)
+
 
 
 def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
@@ -910,6 +1024,8 @@ def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo verificar la disponibilidad: {e}")
         print(e)
+
+
 
 
 
