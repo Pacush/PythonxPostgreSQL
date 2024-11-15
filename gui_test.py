@@ -1,3 +1,4 @@
+import datetime
 import tkinter as tk
 from tkinter import messagebox, ttk
 
@@ -47,7 +48,12 @@ def refresh_table(treeview, tabla):
     # Re-cargar datos desde la base de datos
     connection, cursor = conectar_db()
     if connection and cursor:
-        cursor.execute(f"SELECT * FROM {tabla} ORDER BY codigo ASC")
+        
+        if(tabla != "citas"):
+            cursor.execute(f"SELECT * FROM {tabla} ORDER BY codigo ASC")
+        else:
+            cursor.execute(f"SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora FROM citas INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo;")
+        
         rows = cursor.fetchall()
         for row in rows:
             treeview.insert("", "end", values=row)
@@ -749,9 +755,9 @@ def abrir_ventana_citas_empleados():
 
 def abrir_ventana_registrar_cita():
     # Crear una nueva ventana más pequeña para registrar citas
+    global ventana_registrar_cita
     ventana_registrar_cita = tk.Toplevel()
     ventana_registrar_cita.title("Registrar Cita")
-    centrar_ventana(ventana_registrar_cita, 3, 2, 2)
 
     frame_registro = tk.Frame(ventana_registrar_cita)
     frame_registro.pack(padx=10, pady=10, fill="both", expand=True)
@@ -791,6 +797,8 @@ def abrir_ventana_registrar_cita():
     tk.Label(frame_registro, text="Seleccione Doctor:").pack(pady=5)
     combo_doctores = ttk.Combobox(frame_registro, values=nombres_doctores, width=30)
     combo_doctores.pack()
+    
+    centrar_ventana(ventana_registrar_cita, 5, 3, 3)
 
     # Botón para revisar disponibilidad
     def revisar_disponibilidad():
@@ -810,9 +818,10 @@ def abrir_ventana_registrar_cita():
 
 def abrir_ventana_calendario_citas(codigo_doctor, codigo_paciente):
     # Crear la ventana principal
+    global ventana_calendario
     ventana_calendario = tk.Tk()
     ventana_calendario.title('Registrar cita')
-    centrar_ventana(ventana_calendario, 3, 2, 2)
+    centrar_ventana(ventana_calendario, 5, 3, 2)
 
 
     # Calendario
@@ -845,6 +854,9 @@ def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
     # Extraer la primera parte de la hora (antes del guion)
     hora_inicial = hora.split(' - ')[0]  # Obtiene "9:00" de "9:00 - 10:00"
     hora_seleccionada = f"{hora_inicial}:00"  # Formatear correctamente la hora
+    
+    sabado_o_domingo = fecha_seleccionada.weekday() in (5, 6)
+
 
 
     try:
@@ -853,17 +865,16 @@ def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
         if connection and cursor:
             cursor.execute(f"SELECT * FROM citas WHERE fecha = '{fecha_seleccionada}' AND hora = '{hora_seleccionada}' AND codigo_doctor = {codigo_doctor}")
             citas_existentes = cursor.fetchall()
-            if citas_existentes:
+            
+            if citas_existentes or sabado_o_domingo:
                 messagebox.showerror("No Disponible", "El doctor no está disponible en esa fecha y hora.")
             else:
                 cursor.execute(f"SELECT nombre FROM pacientes WHERE codigo = {codigo_paciente}")
                 nombre_paciente = cursor.fetchone()
                 
-
                 cursor.execute(f"SELECT nombre FROM pacientes WHERE codigo = {codigo_doctor}")
                 nombre_doctor = cursor.fetchone()
                 
-
                 confirmacion = messagebox.askyesno(
                     "Confirmar Cita",
                     f"La cita está disponible. ¿Deseas agendar la cita para el paciente {nombre_paciente} con el doctor {nombre_doctor} el día {fecha_seleccionada} a las {hora_seleccionada}?"
@@ -878,11 +889,22 @@ def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
                     )
                     connection.commit()
                     messagebox.showinfo("Cita Registrada", "La cita ha sido agendada exitosamente.")
-
-
-
+                    
+                else:
+                    ventana_citas_empleados.lift()
+                    ventana_registrar_cita.lift()
+                    ventana_calendario.lift()
+                    
+                
             cursor.close()
             connection.close()
+            
+            ventana_calendario.destroy()
+            ventana_registrar_cita.destroy()
+            ventana_citas_empleados.lift()
+            refresh_table(tablaCitasEmpleados, "citas")
+        
+            
         else:
             raise Exception("No se pudo conectar a la base de datos")
     except Exception as e:
