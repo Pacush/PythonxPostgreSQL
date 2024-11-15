@@ -1,9 +1,7 @@
-import datetime
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 import psycopg2
-from PIL import Image, ImageTk
 from tkcalendar import Calendar
 
 
