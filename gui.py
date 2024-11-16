@@ -38,7 +38,7 @@ def cargar_logo(ventana):
     except Exception as e:
         print("No se pudo cargar el icono:", e)
 
-def refresh_table(treeview, tabla):
+def refresh_table(treeview, tabla, doctor=False):
     # Borrar los datos actuales en el treeview
     for item in treeview.get_children():
         treeview.delete(item)
@@ -49,8 +49,10 @@ def refresh_table(treeview, tabla):
         
         if(tabla != "citas"):
             cursor.execute(f"SELECT * FROM {tabla} ORDER BY codigo ASC")
-        else:
+        elif (not doctor):
             cursor.execute(f"SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora FROM citas INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo ORDER BY codigo ASC;")
+        else:
+            cursor.execute(f"SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora FROM citas INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo WHERE citas.codigo_doctor = {user_id} ORDER BY codigo ASC;")
         
         rows = cursor.fetchall()
         for row in rows:
@@ -69,7 +71,8 @@ def cancelar(ventana_cerrar, ventana_mostrar):
 # Ventana de login
 def login():
     def check_login():
-        user = entry_user.get()
+        global user_id
+        user_id = entry_user.get()
         password = entry_pass.get()
         
         global username
@@ -78,18 +81,18 @@ def login():
         try:
             connection, cursor = conectar_db()
             if connection and cursor:
-                if user == "admin" and password == "1234":
+                if user_id == "admin" and password == "1234":
                     ventana_login.destroy()
                     username = "admin"
                     menu_principal_admin()
 
                 else:
                     #Conuslta verificar empleado
-                    cursor.execute("SELECT * FROM empleados where codigo =%s AND contrasena = %s", (user, password))
+                    cursor.execute("SELECT * FROM empleados where codigo =%s AND contrasena = %s", (user_id, password))
                     empleado = cursor.fetchone()
                     
                     if empleado:
-                        cursor.execute("SELECT nombre FROM empleados where codigo =%s", (user))
+                        cursor.execute("SELECT nombre FROM empleados where codigo =%s", (user_id))
                         resultado = cursor.fetchone()
                         username = resultado[0] if resultado else ""
                         ventana_login.destroy()
@@ -97,11 +100,11 @@ def login():
 
                     else:
                         #Conuslta verificar empleado
-                        cursor.execute("SELECT * FROM doctores where codigo =%s AND contrasena = %s", (user, password))
+                        cursor.execute("SELECT * FROM doctores where codigo =%s AND contrasena = %s", (user_id, password))
                         doctor = cursor.fetchone()
                     
                         if doctor:
-                            cursor.execute("SELECT nombre FROM doctores where codigo =%s", (user))
+                            cursor.execute("SELECT nombre FROM doctores where codigo =%s", (user_id))
                             resultado = cursor.fetchone()
                             username = resultado[0] if resultado else ""
                             ventana_login.destroy()
@@ -117,7 +120,8 @@ def login():
                 messagebox.showerror("Error", "No se pudo conectar a la base de datos")
                 
         except Exception as e:
-            messagebox.showerror("Error", "Usuario o contraseña incorrectos")
+            print (e)
+            messagebox.showerror("Error", f"No fue posible cargar la sesión correctamente")
 
             
     
@@ -240,10 +244,10 @@ def menu_principal_doctor():
     label_title = tk.Label(frame_menu, text=title_text, font=("Arial", 24))
     label_title.grid(row=0, column=0, columnspan=2, pady=20)
 
-    btn1 = tk.Button(frame_menu, text="Pacientes", command=abrir_ventana_pacientes, width=20)
+    btn1 = tk.Button(frame_menu, text="Pacientes", command=abrir_ventana_pacientes_doctores, width=20)
     btn1.grid(row=1, column=0, padx=10, pady=10, sticky="w")
     
-    btn2 = tk.Button(frame_menu, text="Citas", width=20) #Falta command para citas
+    btn2 = tk.Button(frame_menu, text="Citas", width=20, command=abrir_ventana_citas_doctores)
     btn2.grid(row=2, column=0, padx=10, pady=10, sticky="w")
     
     btn3 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
@@ -616,6 +620,154 @@ def abrir_ventana_pacientes():
     
     centrar_ventana(ventana_pacientes, 2, 2, 3)
 
+def abrir_ventana_pacientes_doctores():
+    global ventana_pacientes_doctor
+    ventana_pacientes_doctor= tk.Toplevel()
+    ventana_pacientes_doctor.title("Pacientes")
+    cargar_logo(ventana_pacientes_doctor)
+    
+    frame_principal = tk.Frame(ventana_pacientes_doctor)
+    frame_principal.pack(expand=True, fill="both", padx=10, pady=10)
+    
+    # Crear tabla con scrollbars
+    tree_frame = tk.Frame(frame_principal)
+    tree_frame.pack(fill="both", expand=True)
+    
+    # Scrollbars
+    scrollbar_y = tk.Scrollbar(tree_frame, orient="vertical")
+    scrollbar_y.pack(side="right", fill="y")
+    
+    scrollbar_x = tk.Scrollbar(tree_frame, orient="horizontal")
+    scrollbar_x.pack(side="bottom", fill="x")
+    
+    # Definir columnas de la tabla empleados
+    global tablaPacientes
+    tablaPacientes = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "edad", "estatura"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+    tablaPacientes.pack(fill="both", expand=True)
+    
+    # Configuración de las columnas
+    tablaPacientes.heading("codigo", text="Código")
+    tablaPacientes.heading("nombre", text="Nombre")
+    tablaPacientes.heading("direccion", text="Dirección")
+    tablaPacientes.heading("telefono", text="Teléfono")
+    tablaPacientes.heading("fecha_nac", text="Fecha Nacimiento")
+    tablaPacientes.heading("sexo", text="Sexo")
+    tablaPacientes.heading("edad", text="Edad")
+    tablaPacientes.heading("estatura", text="Estatura")
+    
+    # Ajustar el tamaño de las columnas
+    tablaPacientes.column("codigo", width=80)
+    tablaPacientes.column("nombre", width=150)
+    tablaPacientes.column("direccion", width=200)
+    tablaPacientes.column("telefono", width=100)
+    tablaPacientes.column("fecha_nac", width=120)
+    tablaPacientes.column("sexo", width=80)
+    tablaPacientes.column("edad", width=80)
+    tablaPacientes.column("estatura", width=80)
+    
+    # Asignar los scrollbars al Treeview
+    scrollbar_y.config(command=tablaPacientes.yview)
+    scrollbar_x.config(command=tablaPacientes.xview)
+    
+    # Botones para registrar, editar y eliminar empleados
+    button_frame = tk.Frame(frame_principal)
+    button_frame.pack(fill="x", pady=10)
+    
+    btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tablaPacientes, "pacientes"))
+    btn_refresh.pack(side="right", padx=10)
+    
+    # Conectar y mostrar los datos en la tabla
+    connection, cursor = conectar_db()
+    if connection and cursor:
+        cursor.execute("SELECT * FROM pacientes ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
+        rows = cursor.fetchall()
+        for row in rows:
+            tablaPacientes.insert("", "end", values=row)
+        
+        cursor.close()
+        connection.close()
+    
+    centrar_ventana(ventana_pacientes, 2, 2, 3)
+
+def asignar_consulta():
+    global ventana_asignar_consulta
+    ventana_asignar_consulta = tk.Toplevel()
+    ventana_asignar_consulta.title("Asignar cosnulta")
+    frame_asignar_consulta = tk.Frame(ventana_registrar_cita)
+    frame_asignar_consulta.pack(padx=10, pady=10, fill="both", expand=True)
+
+
+    # Conectar y obtener nombres de pacientes y doctores
+    try:
+        connection, cursor = conectar_db()
+        if connection and cursor:
+            # Obtener pacientes
+            cursor.execute("SELECT codigo FROM citas")
+            citas = cursor.fetchall()
+
+            # Obtener doctores (incluyendo código y nombre)
+            cursor.execute("SELECT codigo, nombre FROM medicamentos")
+            medicamentos = cursor.fetchall()
+            nombres_medicamentos = [row[1] for row in medicamentos]  # Lista de nombres
+            global medicamentos_dict
+            medicamentos_dict = {row[1]: row[0] for row in medicamentos}  # Diccionario {nombre: código}
+
+            cursor.close()
+            connection.close()
+        else:
+            raise Exception("No se pudo conectar a la base de datos")
+    except Exception as e:
+        print (e)
+        messagebox.showerror("Error", f"No se pudo cargar los datos")
+        return
+
+    # Etiquetas y listas desplegables para seleccionar paciente y doctor
+    tk.Label(frame_asignar_consulta, text="Seleccione el ID de la cita:").pack(pady=5)
+    combo_pacientes = ttk.Combobox(frame_asignar_consulta, values=citas, width=30)
+    combo_pacientes.pack()
+
+    tk.Label(frame_asignar_consulta, text="Seleccione el medicamento:").pack(pady=5)
+    combo_doctores = ttk.Combobox(frame_asignar_consulta, values=nombres_medicamentos, width=30)
+    combo_doctores.pack()
+    
+    labels = ["Diagnostico"]
+    entries = []
+
+    for label_text in labels:
+        label = tk.Label(frame_asignar_consulta, text=label_text)
+        label.pack(pady=2)
+        entry = tk.Entry(frame_asignar_consulta)
+        entry.pack(pady=5)
+        entries.append(entry)
+
+    # Botón para continuar con la edición
+    tk.Button(frame_asignar_consulta, text="Continuar", command=lambda: continuar_asignacion_consulta(combo_pacientes.get())).pack(pady=20)
+    
+    
+    
+    def continuar_asignacion_consulta(codigo_paciente):
+        if not codigo_paciente:
+            messagebox.showwarning("Advertencia", "Debe seleccionar un paciente.")
+            return
+        
+        ventana_registro = tk.Toplevel()
+        ventana_registro.title("Asignar consulta")
+        cargar_logo(ventana_registro)
+
+        frame_registro = tk.Frame(ventana_registro)
+        frame_registro.pack(padx=10, pady=10)
+
+        # Campos para registrar empleado
+        labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Edad", "Estatura (metros)"]
+        entries = []
+
+        for label_text in labels:
+            label = tk.Label(frame_registro, text=label_text)
+            label.pack(pady=2)
+            entry = tk.Entry(frame_registro)
+            entry.pack(pady=2)
+            entries.append(entry)
+        
 def registrar_paciente():
     # Ventana para registrar nuevo empleado
     ventana_registro = tk.Toplevel()
@@ -1019,6 +1171,80 @@ def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo verificar la disponibilidad: {e}")
         print(e)
+
+def abrir_ventana_citas_doctores():
+    global ventana_citas_doctores
+    ventana_citas_doctores = tk.Toplevel()
+    ventana_citas_doctores.title("Citas")
+    cargar_logo(ventana_citas_doctores)
+    
+    frame_principal = tk.Frame(ventana_citas_doctores)
+    frame_principal.pack(expand=True, fill="both", padx=10, pady=10)
+    
+    # Crear tabla con scrollbars
+    tree_frame = tk.Frame(frame_principal)
+    tree_frame.pack(fill="both", expand=True)
+    
+    # Scrollbars
+    scrollbar_y = tk.Scrollbar(tree_frame, orient="vertical")
+    scrollbar_y.pack(side="right", fill="y")
+    
+    scrollbar_x = tk.Scrollbar(tree_frame, orient="horizontal")
+    scrollbar_x.pack(side="bottom", fill="x")
+    
+    # Definir columnas de la tabla empleados
+    global tabla_citas_doctores
+    tabla_citas_doctores = ttk.Treeview(tree_frame, columns=("codigo", "paciente", "doctor", "fecha", "hora"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+    tabla_citas_doctores.pack(fill="both", expand=True)
+    
+    # Configuración de las columnas
+    tabla_citas_doctores.heading("codigo", text="Código de cita")
+    tabla_citas_doctores.heading("paciente", text="Paciente")
+    tabla_citas_doctores.heading("doctor", text="Doctor")
+    tabla_citas_doctores.heading("fecha", text="Fecha")
+    tabla_citas_doctores.heading("hora", text="Hora")
+    
+    # Ajustar el tamaño de las columnas
+    tabla_citas_doctores.column("codigo", width=50)
+    tabla_citas_doctores.column("paciente", width=150)
+    tabla_citas_doctores.column("doctor", width=150)
+    tabla_citas_doctores.column("fecha", width=80)
+    tabla_citas_doctores.column("hora", width=80)
+    
+    # Asignar los scrollbars al Treeview
+    scrollbar_y.config(command=tabla_citas_doctores.yview)
+    scrollbar_x.config(command=tabla_citas_doctores.xview)
+    
+    # Botones para registrar, editar y eliminar empleados
+    button_frame = tk.Frame(frame_principal)
+    button_frame.pack(fill="x", pady=10)
+    
+    btn_registrar = tk.Button(button_frame, text="Asignar consulta", width=15, command=asignar_consulta)
+    btn_registrar.pack(side="left", padx=10)
+    
+    #btn_editar = tk.Button(button_frame, text="Editar", width=15, command=abrir_ventana_editar_cita)
+    #btn_editar.pack(side="left", padx=10)
+    
+    #btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
+    #btn_eliminar.pack(side="left", padx=10)
+    
+    
+    btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tabla_citas_doctores, "citas", user_id))
+    btn_refresh.pack(side="right", padx=10)
+    
+    
+    # Conectar y mostrar los datos en la tabla
+    connection, cursor = conectar_db()
+    if connection and cursor:
+        cursor.execute(f"SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora FROM citas INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo WHERE citas.codigo_doctor = {user_id} ORDER BY codigo ASC;")  # Asegúrate de que la tabla existe y tiene estos campos
+        rows = cursor.fetchall()
+        for row in rows:
+            tabla_citas_doctores.insert("", "end", values=row)
+        
+        cursor.close()
+        connection.close()
+    
+    centrar_ventana(ventana_citas_doctores, 2, 2, 3)
 
 def abrir_ventana_medicamentos():
     global ventana_medicamentos
