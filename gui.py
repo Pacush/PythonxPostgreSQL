@@ -784,13 +784,7 @@ def asignar_consulta():
     
     # Botón para continuar con la consulta
     tk.Button(frame_asignar_consulta, text="Continuar", command=continuar_asignacion_consulta).pack(pady=20)
-    
-    
-    
-    
-            
-                
-        
+     
 def registrar_paciente():
     # Ventana para registrar nuevo empleado
     ventana_registro = tk.Toplevel()
