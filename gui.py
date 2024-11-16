@@ -3,6 +3,7 @@ from tkinter import messagebox, ttk
 
 import psycopg2
 from tkcalendar import Calendar
+import pdf
 
 
 # Conexión a la base de datos
@@ -692,9 +693,11 @@ def abrir_ventana_pacientes_doctores():
 def asignar_consulta():
     global ventana_asignar_consulta
     ventana_asignar_consulta = tk.Toplevel()
-    ventana_asignar_consulta.title("Asignar cosnulta")
-    frame_asignar_consulta = tk.Frame(ventana_registrar_cita)
+    ventana_asignar_consulta.title("Asignar consulta")
+    frame_asignar_consulta = tk.Frame(ventana_asignar_consulta)
     frame_asignar_consulta.pack(padx=10, pady=10, fill="both", expand=True)
+    centrar_ventana(ventana_asignar_consulta, 3, 3, 3)
+    cargar_logo(ventana_asignar_consulta)
 
 
     # Conectar y obtener nombres de pacientes y doctores
@@ -702,7 +705,7 @@ def asignar_consulta():
         connection, cursor = conectar_db()
         if connection and cursor:
             # Obtener pacientes
-            cursor.execute("SELECT codigo FROM citas")
+            cursor.execute(f"SELECT citas.codigo FROM citas INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo WHERE citas.codigo_doctor = {user_id} ORDER BY codigo ASC;")
             citas = cursor.fetchall()
 
             # Obtener doctores (incluyendo código y nombre)
@@ -723,50 +726,70 @@ def asignar_consulta():
 
     # Etiquetas y listas desplegables para seleccionar paciente y doctor
     tk.Label(frame_asignar_consulta, text="Seleccione el ID de la cita:").pack(pady=5)
-    combo_pacientes = ttk.Combobox(frame_asignar_consulta, values=citas, width=30)
-    combo_pacientes.pack()
+    combo_citas = ttk.Combobox(frame_asignar_consulta, values=citas, width=30)
+    combo_citas.pack()
 
     tk.Label(frame_asignar_consulta, text="Seleccione el medicamento:").pack(pady=5)
-    combo_doctores = ttk.Combobox(frame_asignar_consulta, values=nombres_medicamentos, width=30)
-    combo_doctores.pack()
+    combo_medicamentos = ttk.Combobox(frame_asignar_consulta, values=nombres_medicamentos, width=30)
+    combo_medicamentos.pack()
     
-    labels = ["Diagnostico"]
-    entries = []
+    label_diagnostico = tk.Label(frame_asignar_consulta, text="Diagnostico")
+    label_diagnostico.pack(pady=2)
+    entry_diagnostico = tk.Text(frame_asignar_consulta, height=10)
+    entry_diagnostico.pack(pady=2)
 
-    for label_text in labels:
-        label = tk.Label(frame_asignar_consulta, text=label_text)
-        label.pack(pady=2)
-        entry = tk.Entry(frame_asignar_consulta)
-        entry.pack(pady=5)
-        entries.append(entry)
-
-    # Botón para continuar con la edición
-    tk.Button(frame_asignar_consulta, text="Continuar", command=lambda: continuar_asignacion_consulta(combo_pacientes.get())).pack(pady=20)
-    
-    
-    
-    def continuar_asignacion_consulta(codigo_paciente):
-        if not codigo_paciente:
-            messagebox.showwarning("Advertencia", "Debe seleccionar un paciente.")
-            return
+    def continuar_asignacion_consulta():
+        cita_seleccionada = combo_citas.get()
+        diagnostico = entry_diagnostico.get("1.0", tk.END)
+        medicamento_seleccionado = medicamentos_dict.get(combo_medicamentos.get())
         
-        ventana_registro = tk.Toplevel()
-        ventana_registro.title("Asignar consulta")
-        cargar_logo(ventana_registro)
+        
+        valores = [cita_seleccionada, diagnostico, medicamento_seleccionado]
+        if all(valores):
+            try:
+                connection, cursor = conectar_db()
+                if connection and cursor:
+                    query = """
+                        INSERT INTO consultas (codigo_cita, diagnostico, codigo_medicamento)
+                        VALUES (%s, %s, %s)
+                    """
+                    cursor.execute(query, tuple(valores))
+                    
+                    if not pdf.consulta2pdf(cita_seleccionada, diagnostico, medicamento_seleccionado):
+                        messagebox.showerror("Error", "No se pudo imprimir la consulta")
+                    
+                    connection.commit()
+                    messagebox.showinfo("Éxito", "Consulta registrada exitosamente")
+                    cursor.close()
+                    connection.close()
+                    ventana_asignar_consulta.destroy()  # Cerrar la ventana de registro después de guardar
+                    ventana_citas_doctores.lift()
+                    
+                    
+                    
+                else:
+                    messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+                    ventana_asignar_consulta.destroy()
+                    ventana_citas_doctores.lift()
 
-        frame_registro = tk.Frame(ventana_registro)
-        frame_registro.pack(padx=10, pady=10)
-
-        # Campos para registrar empleado
-        labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Edad", "Estatura (metros)"]
-        entries = []
-
-        for label_text in labels:
-            label = tk.Label(frame_registro, text=label_text)
-            label.pack(pady=2)
-            entry = tk.Entry(frame_registro)
-            entry.pack(pady=2)
-            entries.append(entry)
+                    
+            except Exception as e:
+                print(e)
+                messagebox.showerror("Error", f"No se pudo registrar la consulta")
+                ventana_asignar_consulta.lift()
+                
+        else:
+            messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
+            ventana_asignar_consulta.lift()
+    
+    # Botón para continuar con la consulta
+    tk.Button(frame_asignar_consulta, text="Continuar", command=continuar_asignacion_consulta).pack(pady=20)
+    
+    
+    
+    
+            
+                
         
 def registrar_paciente():
     # Ventana para registrar nuevo empleado
