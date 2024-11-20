@@ -14,6 +14,7 @@ def conectar_db():
             database='NucleoDeDiagnostico',
             port ='5433'    #Cambiar dependiendo del puerto asignado en tu servidor
         )
+        
         cursor = connection.cursor()
         return connection, cursor
     except Exception as ex:
