@@ -1,3 +1,12 @@
+
+# Nucleo de diagnostico - Proyecto Final
+# Equipo 6 - Bases de datos / 9am Ma, J / Sección D02
+# Integrantes:
+#   Sánchez Cuadro Hugo Leonardo.
+#   Sánchez Naranjo José Alejandro.
+#   Vargas Figueroa César Antonio.
+#   Zúñiga Orozco Elías Alonso.
+
 import tkinter as tk
 from tkinter import messagebox, ttk
 
@@ -14,7 +23,7 @@ def conectar_db():
             user='postgres',
             password='12345',
             database='NucleoDeDiagnostico',
-            port ='5433'    #Cambiar dependiendo del puerto asignado en tu servidor
+            port ='5433'    #Cambiar dependiendo del puerto asignado en el servidor
         )
         cursor = connection.cursor()
         return connection, cursor
@@ -902,13 +911,11 @@ def abrir_ventana_citas_empleados():
     btn_editar = tk.Button(button_frame, text="Editar", width=15, command=abrir_ventana_editar_cita)
     btn_editar.pack(side="left", padx=10)
     
-    btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
+    btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15, command=abrir_ventana_eliminar_cita)
     btn_eliminar.pack(side="left", padx=10)
-    
     
     btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tablaCitasEmpleados, "citas"))
     btn_refresh.pack(side="right", padx=10)
-    
     
     # Conectar y mostrar los datos en la tabla
     connection, cursor = conectar_db()
@@ -1188,6 +1195,81 @@ def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo verificar la disponibilidad: {e}")
         print(e)
+
+def abrir_ventana_eliminar_cita():
+    # Crear una ventana para seleccionar la cita a editar
+    global ventana_eliminar_cita
+    ventana_eliminar_cita = tk.Toplevel()
+    ventana_eliminar_cita.title("Eliminar Cita")
+    frame_editar = tk.Frame(ventana_eliminar_cita)
+    frame_editar.pack(padx=10, pady=10)
+    cargar_logo(ventana_eliminar_cita)
+    centrar_ventana(ventana_eliminar_cita, 7, 7, 3)
+
+    # Conectar y obtener los códigos de citas existentes
+    try:
+        connection, cursor = conectar_db()
+        if connection and cursor:
+            cursor.execute("SELECT codigo FROM citas")
+            citas = cursor.fetchall()
+            lista_citas = [str(cita[0]) for cita in citas]  # Convertir los códigos a string
+
+            cursor.close()
+            connection.close()
+        else:
+            raise Exception("No se pudo conectar a la base de datos")
+    except Exception as e:
+        messagebox.showerror("Error", f"No se pudo cargar los datos de las citas: {e}")
+        return
+
+    # Mostrar la lista de citas
+    tk.Label(frame_editar, text="Seleccione el ID de la cita a eliminar:").pack(pady=5)
+    combo_citas = ttk.Combobox(frame_editar, values=lista_citas)
+    combo_citas.pack()
+
+    # Botón para continuar con la edición
+    tk.Button(frame_editar, text="Continuar", command=lambda: continuar_eliminacion_cita(combo_citas.get())).pack(pady=20)
+
+    def continuar_eliminacion_cita(codigo_cita):
+        if not codigo_cita:
+            messagebox.showwarning("Advertencia", "Debe seleccionar una cita.")
+            return
+
+
+
+
+        try:
+            connection, cursor = conectar_db()
+            if connection and cursor:
+
+                confirmacion = messagebox.askyesno(
+                    "Confirmar Edición",
+                    f"¿Deseas eliminar la cita {codigo_cita}?"
+                )
+            if confirmacion:
+                cursor.execute(f"DELETE FROM citas WHERE codigo = {codigo_cita};")
+                connection.commit()
+                messagebox.showinfo("Cita Eliminada", "La cita ha sido eliminada exitosamente.")
+                ventana_citas_empleados.lift()
+                refresh_table(tablaCitasEmpleados, "citas")
+                
+
+                cursor.close()
+                connection.close()
+
+
+            else:
+                raise Exception("No se pudo conectar a la base de datos")
+        except Exception as e:
+            print(e)
+            messagebox.showerror("Error", f"No se pudo cargar los datos de las citas")
+            return
+
+        
+
+    
+
+
 
 def abrir_ventana_citas_doctores():
     global ventana_citas_doctores
