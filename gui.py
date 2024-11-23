@@ -1560,11 +1560,9 @@ def abrir_ventana_registrar_cita():
     ventana_registrar_cita = tk.Toplevel()
     ventana_registrar_cita.title("Registrar Cita")
     cargar_logo(ventana_registrar_cita)
-
     frame_registro = tk.Frame(ventana_registrar_cita)
     frame_registro.pack(padx=10, pady=10, fill="both", expand=True)
-
-
+    
     # Conectar y obtener nombres de pacientes y doctores
     try:
         connection, cursor = conectar_db()
@@ -1582,7 +1580,6 @@ def abrir_ventana_registrar_cita():
             nombres_doctores = [row[1] for row in doctores]  # Lista de nombres
             global doctores_dict
             doctores_dict = {row[1]: row[0] for row in doctores}  # Diccionario {nombre: código}
-
             cursor.close()
             connection.close()
         else:
@@ -1757,33 +1754,23 @@ def confirmar_edicion_cita(calendario, caja_horas, codigo_cita):
 def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
     # Obtener la fecha seleccionada en el calendario
     fecha_seleccionada = calendario.selection_get()
-
-    hora = caja_horas.get()  # Esto devuelve "9:00 - 10:00" como string
-    
+    hora = caja_horas.get()
     # Extraer la primera parte de la hora (antes del guion)
-    hora_inicial = hora.split(' - ')[0]  # Obtiene "9:00" de "9:00 - 10:00"
+    hora_inicial = hora.split(' - ')[0]
     hora_seleccionada = f"{hora_inicial}:00"  # Formatear correctamente la hora
-    
     sabado_o_domingo = fecha_seleccionada.weekday() in (5, 6)
-
-
-
     try:
         connection, cursor = conectar_db()
-        
         if connection and cursor:
             cursor.execute(f"SELECT * FROM citas WHERE fecha = '{fecha_seleccionada}' AND hora = '{hora_seleccionada}' AND codigo_doctor = {codigo_doctor}")
             citas_existentes = cursor.fetchall()
-            
             if citas_existentes or sabado_o_domingo:
                 messagebox.showerror("No Disponible", "El doctor no está disponible en esa fecha y hora.")
             else:
                 cursor.execute(f"SELECT nombre FROM pacientes WHERE codigo = {codigo_paciente}")
                 nombre_paciente = cursor.fetchone()
-                
                 cursor.execute(f"SELECT nombre FROM doctores WHERE codigo = {codigo_doctor}")
                 nombre_doctor = cursor.fetchone()
-                
                 confirmacion = messagebox.askyesno(
                     "Confirmar Cita",
                     f"La cita está disponible. ¿Deseas agendar la cita para el paciente {nombre_paciente} con el doctor {nombre_doctor} el día {fecha_seleccionada} a las {hora_seleccionada}?"
@@ -1798,22 +1785,16 @@ def obtener_cita(calendario, caja_horas, codigo_doctor, codigo_paciente):
                     )
                     connection.commit()
                     messagebox.showinfo("Cita Registrada", "La cita ha sido agendada exitosamente.")
-                    
                 else:
                     ventana_citas_empleados.lift()
                     ventana_registrar_cita.lift()
                     ventana_calendario.lift()
-                    
-                
             cursor.close()
             connection.close()
-            
             ventana_calendario.destroy()
             ventana_registrar_cita.destroy()
             ventana_citas_empleados.lift()
             refresh_table(tablaCitasEmpleados, "citas")
-        
-            
         else:
             raise Exception("No se pudo conectar a la base de datos")
     except Exception as e:
