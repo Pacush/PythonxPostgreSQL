@@ -1,4 +1,3 @@
-
 # Nucleo de diagnostico - Proyecto Final
 # Equipo 6 - Bases de datos / 9am Ma, J / Sección D02 / 2024B
 # Integrantes:
@@ -16,154 +15,187 @@ from tkcalendar import Calendar
 import pdf
 
 
-# Conexión a la base de datos
+# Función para establecer conexión con la base de datos
 def conectar_db():
     try:
+        # Se intenta conectar a la base de datos PostgreSQL con los parámetros definidos
         connection = psycopg2.connect(
-            host='localhost',
-            user='postgres',
-            password='12345',   # Cambiar dependiendo de la contraseña asignada antes
-            database='NucleoDeDiagnostico',
-            port ='5433'        # Cambiar dependiendo del puerto asignado en el servidor
+            host='localhost',             # Dirección del servidor de base de datos
+            user='postgres',              # Usuario de la base de datos
+            password='12345',             # Contraseña del usuario
+            database='NucleoDeDiagnostico', # Nombre de la base de datos
+            port='5433'                   # Puerto del servidor
         )
+        # Se crea un cursor para ejecutar consultas
         cursor = connection.cursor()
         return connection, cursor
     except Exception as ex:
+        # Si ocurre un error, se muestra un mensaje y se retorna None
         messagebox.showerror("Error", f"Error al conectar a la base de datos: {ex}")
         return None, None
 
-# Función para centrar y redimensionar ventanas
+# Función para centrar y redimensionar una ventana
 def centrar_ventana(ventana, ancho_ventana_ratio, alto_ventana_ratio, pos_offset):
+    # Obtiene las dimensiones de la pantalla
     ancho_pantalla = ventana.winfo_screenwidth()
     alto_pantalla = ventana.winfo_screenheight()
+
+    # Calcula las dimensiones de la ventana según los ratios proporcionados
     ancho_ventana = ancho_pantalla // ancho_ventana_ratio
     alto_ventana = alto_pantalla // alto_ventana_ratio
+
+    # Calcula la posición para centrar la ventana
     x_pos = (ancho_pantalla - ancho_ventana) // pos_offset
     y_pos = (alto_pantalla - alto_ventana) // pos_offset
+
+    # Establece las dimensiones y posición calculadas
     ventana.geometry(f"{ancho_ventana}x{alto_ventana}+{x_pos}+{y_pos}")
 
+# Función para cargar el logo de la ventana
 def cargar_logo(ventana):
     try:
+        # Intenta cargar una imagen como icono de la ventana
         logo = tk.PhotoImage(file="icon.png")
         ventana.iconphoto(False, logo)
     except Exception as e:
         print("No se pudo cargar el icono:", e)
 
+# Función para actualizar los datos de una tabla mostrada en un Treeview
 def refresh_table(treeview, tabla, doctor=False):
-    # Borrar los datos actuales en el treeview
+    # Elimina los datos actuales del Treeview
     for item in treeview.get_children():
         treeview.delete(item)
-    
-    # Re-cargar datos desde la base de datos
+
+    # Conecta a la base de datos para obtener datos actualizados
     connection, cursor = conectar_db()
     if connection and cursor:
-        
-        if(tabla != "citas"):
-            cursor.execute(f"SELECT * FROM {tabla} ORDER BY codigo ASC")
-        elif (not doctor):
-            cursor.execute(f"SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora FROM citas INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo ORDER BY codigo ASC;")
-        else:
-            cursor.execute(f"SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora FROM citas INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo WHERE citas.codigo_doctor = {user_id} ORDER BY codigo ASC;")
-        
-        rows = cursor.fetchall()
-        for row in rows:
-            treeview.insert("", "end", values=row)
-        
-        cursor.close()
-        connection.close()
-        
-    else:
-        print("Fallo")
+        try:
+            # Consulta dependiendo de la tabla y el contexto
+            if tabla != "citas":
+                cursor.execute(f"SELECT * FROM {tabla} ORDER BY codigo ASC")
+            elif not doctor:
+                cursor.execute("""
+                    SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora
+                    FROM citas
+                    INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo
+                    INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo
+                    ORDER BY codigo ASC
+                """)
+            else:
+                cursor.execute(f"""
+                    SELECT citas.codigo, pacientes.nombre, doctores.nombre, citas.fecha, citas.hora
+                    FROM citas
+                    INNER JOIN pacientes ON citas.codigo_paciente = pacientes.codigo
+                    INNER JOIN doctores ON citas.codigo_doctor = doctores.codigo
+                    WHERE citas.codigo_doctor = {user_id}
+                    ORDER BY codigo ASC
+                """)
 
+            # Agrega las filas al Treeview
+            rows = cursor.fetchall()
+            for row in rows:
+                treeview.insert("", "end", values=row)
+
+        except Exception as e:
+            print("Error al refrescar la tabla:", e)
+
+        finally:
+            cursor.close()
+            connection.close()
+    else:
+        print("Fallo en la conexión a la base de datos")
+
+# Función para cerrar una ventana y mostrar otra
 def cancelar(ventana_cerrar, ventana_mostrar):
-    ventana_cerrar.destroy()
-    ventana_mostrar.lift()
+    ventana_cerrar.destroy()  # Cierra la ventana actual
+    ventana_mostrar.lift()    # Trae al frente la ventana especificada
 
 # Ventana de login
 def login():
     def check_login():
         global user_id
-        user_id = entry_user.get()
-        password = entry_pass.get()
-        
-        global username
-        
-        
+        user_id = entry_user.get()  # Obtiene el texto ingresado en el campo de usuario
+        password = entry_pass.get()  # Obtiene el texto ingresado en el campo de contraseña
+
+        global username  # Variable global para almacenar el nombre del usuario logueado
+
         try:
             connection, cursor = conectar_db()
             if connection and cursor:
+                # Si el usuario es administrador, verifica la contraseña directamente
                 if user_id == "admin" and password == "1234":
                     ventana_login.destroy()
                     username = "admin"
                     menu_principal_admin()
 
                 else:
-                    #Conuslta verificar empleado
-                    cursor.execute("SELECT * FROM empleados where codigo =%s AND contrasena = %s", (user_id, password))
+                    # Verifica si el usuario es empleado
+                    cursor.execute("SELECT * FROM empleados WHERE codigo = %s AND contrasena = %s", (user_id, password))
                     empleado = cursor.fetchone()
-                    
+
                     if empleado:
-                        cursor.execute("SELECT nombre FROM empleados where codigo =%s", (user_id))
+                        cursor.execute("SELECT nombre FROM empleados WHERE codigo = %s", (user_id,))
                         resultado = cursor.fetchone()
                         username = resultado[0] if resultado else ""
                         ventana_login.destroy()
                         menu_principal_empleado()
 
                     else:
-                        #Conuslta verificar empleado
-                        cursor.execute("SELECT * FROM doctores where codigo =%s AND contrasena = %s", (user_id, password))
+                        # Verifica si el usuario es doctor
+                        cursor.execute("SELECT * FROM doctores WHERE codigo = %s AND contrasena = %s", (user_id, password))
                         doctor = cursor.fetchone()
-                    
+
                         if doctor:
-                            cursor.execute("SELECT nombre FROM doctores where codigo =%s", (user_id))
+                            cursor.execute("SELECT nombre FROM doctores WHERE codigo = %s", (user_id,))
                             resultado = cursor.fetchone()
                             username = resultado[0] if resultado else ""
                             ventana_login.destroy()
                             menu_principal_doctor()
-
                         else:
                             messagebox.showerror("Error", "Usuario o contraseña incorrectos")
 
                 cursor.close()
                 connection.close()
-        
+
             else:
                 messagebox.showerror("Error", "No se pudo conectar a la base de datos")
-                
-        except Exception as e:
-            print (e)
-            messagebox.showerror("Error", f"No fue posible cargar la sesión correctamente")
 
-            
-    
+        except Exception as e:
+            print(e)
+            messagebox.showerror("Error", "No fue posible cargar la sesión correctamente")
+
+    # Creación de la ventana de login
     ventana_login = tk.Tk()
     ventana_login.title("Login")
-    
-    cargar_logo(ventana_login)
 
+    cargar_logo(ventana_login)  # Carga el logo de la ventana
+
+    # Configuración de la interfaz del login
     frame_login = tk.Frame(ventana_login)
     frame_login.pack(expand=True, fill="both")
-    
+
     label_user = tk.Label(frame_login, text="Usuario:")
     label_user.pack(pady=5)
-    
+
     entry_user = tk.Entry(frame_login)
     entry_user.pack(pady=5)
-    
+
     label_pass = tk.Label(frame_login, text="Contraseña:")
     label_pass.pack(pady=5)
-    
-    entry_pass = tk.Entry(frame_login, show="*")
+
+    entry_pass = tk.Entry(frame_login, show="*")  # Campo para la contraseña (oculta los caracteres)
     entry_pass.pack(pady=5)
-    
+
+    # Botón para iniciar sesión
     btn_login = tk.Button(frame_login, text="Login", command=check_login)
     btn_login.pack(pady=10)
-    
+
+    # Centrar y mostrar la ventana de login
     centrar_ventana(ventana_login, 5, 3, 2)
     ventana_login.mainloop()
 
-# Ventana principal para admin (menú)
 def menu_principal_admin():
+    # Carga de la ventana, contenedores y botones
     global ventana_menu
     ventana_menu = tk.Tk()
     ventana_menu.title("Gestor de registros")
@@ -198,6 +230,7 @@ def menu_principal_admin():
     btn6 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
     btn6.grid(row=6, column=0, padx=10, pady=2, sticky="w")
     
+    # Carga del logo
     logo_img = tk.PhotoImage(file="logo2.png")
     label_logo = tk.Label(frame_menu, image=logo_img)
     label_logo.grid(row=1, column=1, rowspan=6, padx=20, pady=10, sticky="e")
@@ -206,6 +239,7 @@ def menu_principal_admin():
     ventana_menu.mainloop()
 
 def menu_principal_empleado():
+    # Carga de la ventana, contenedores y botones
     global ventana_menu
     ventana_menu = tk.Tk()
     ventana_menu.title("Gestor de registros")
@@ -225,7 +259,7 @@ def menu_principal_empleado():
     btn1 = tk.Button(frame_menu, text="Pacientes", command=abrir_ventana_pacientes, width=20)
     btn1.grid(row=1, column=0, padx=10, pady=10, sticky="w")
     
-    btn2 = tk.Button(frame_menu, text="Citas", width=20, command=abrir_ventana_citas_empleados) #Falta command para citas
+    btn2 = tk.Button(frame_menu, text="Citas", width=20, command=abrir_ventana_citas_empleados)
     btn2.grid(row=2, column=0, padx=10, pady=10, sticky="w")
     
     btn3 = tk.Button(frame_menu, text="Cerrar sesión", width=20, command=cerrar_sesion)
@@ -239,6 +273,8 @@ def menu_principal_empleado():
     ventana_menu.mainloop()
 
 def menu_principal_doctor():
+    
+    # Carga de la ventana, contenedores y botones
     global ventana_menu
     ventana_menu = tk.Tk()
     ventana_menu.title("Gestor de registros")
@@ -273,6 +309,8 @@ def menu_principal_doctor():
 
 # Ventana de empleados
 def abrir_ventana_empleados():
+    
+    # Carga de la ventana, contenedores y botones
     global ventana_empleados
     ventana_empleados = tk.Toplevel()
     ventana_empleados.title("Empleados")
@@ -341,7 +379,7 @@ def abrir_ventana_empleados():
     btn_refresh.pack(side="right", padx=10)
     
     
-    # Conectar y mostrar los datos en la tabla
+    # Conectar con la BD y mostrar los datos en la tabla
     connection, cursor = conectar_db()
     if connection and cursor:
         cursor.execute("SELECT * FROM empleados ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
@@ -355,6 +393,8 @@ def abrir_ventana_empleados():
     centrar_ventana(ventana_empleados, 2, 2, 3)
 
 def abrir_ventana_pacientes():
+    
+    # Carga de la ventana, contenedores y botones
     global ventana_pacientes
     ventana_pacientes= tk.Toplevel()
     ventana_pacientes.title("Pacientes")
@@ -374,7 +414,7 @@ def abrir_ventana_pacientes():
     scrollbar_x = tk.Scrollbar(tree_frame, orient="horizontal")
     scrollbar_x.pack(side="bottom", fill="x")
     
-    # Definir columnas de la tabla empleados
+    # Definir columnas de la tabla pacientes
     global tablaPacientes
     tablaPacientes = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "edad", "estatura"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
     tablaPacientes.pack(fill="both", expand=True)
@@ -403,7 +443,7 @@ def abrir_ventana_pacientes():
     scrollbar_y.config(command=tablaPacientes.yview)
     scrollbar_x.config(command=tablaPacientes.xview)
     
-    # Botones para registrar, editar y eliminar empleados
+    # Botones para registrar, editar y eliminar pacientes
     button_frame = tk.Frame(frame_principal)
     button_frame.pack(fill="x", pady=10)
     
@@ -419,7 +459,7 @@ def abrir_ventana_pacientes():
     btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tablaPacientes, "pacientes"))
     btn_refresh.pack(side="right", padx=10)
     
-    # Conectar y mostrar los datos en la tabla
+    # Conectar con la BD y mostrar los datos en la tabla
     connection, cursor = conectar_db()
     if connection and cursor:
         cursor.execute("SELECT * FROM pacientes ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
@@ -433,6 +473,8 @@ def abrir_ventana_pacientes():
     centrar_ventana(ventana_pacientes, 2, 2, 3)
 
 def abrir_ventana_doctores():
+    
+    # Carga de la ventana, contenedores y botones
     global ventana_doctores
     ventana_doctores = tk.Toplevel()
     ventana_doctores.title("Doctores")
@@ -497,7 +539,7 @@ def abrir_ventana_doctores():
     btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tablaDoctores, "doctores"))
     btn_refresh.pack(side="right", padx=10)
     
-    # Conectar y mostrar los datos en la tabla
+    # Conectar con la BD y mostrar los datos en la tabla
     connection, cursor = conectar_db()
     if connection and cursor:
         cursor.execute("SELECT * FROM doctores ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
@@ -511,7 +553,8 @@ def abrir_ventana_doctores():
     centrar_ventana(ventana_doctores, 2, 2, 3)
 
 def registrar_empleado():
-    # Ventana para registrar nuevo empleado
+    
+    # Carga de la ventana, contenedores y botones
     ventana_registro = tk.Toplevel()
     ventana_registro.title("Registrar nuevo empleado")
     cargar_logo(ventana_registro)
@@ -531,8 +574,11 @@ def registrar_empleado():
         entries.append(entry)
 
     def guardar_empleado():
-        # Recuperar los valores de los campos
+        
+        # Obtener los valores de los campos
         valores = [entry.get() for entry in entries]
+        
+        # Si se ingresaron valores en los campos, se manda la sentencia INSERT SQL a la BD.
         if all(valores):
             try:
                 connection, cursor = conectar_db()
@@ -546,23 +592,27 @@ def registrar_empleado():
                     messagebox.showinfo("Éxito", "Empleado registrado exitosamente")
                     cursor.close()
                     connection.close()
-                    ventana_registro.destroy()  # Cerrar la ventana de registro después de guardar
+                    # Cerrar ventana de registro y mostrar la tabla
+                    ventana_registro.destroy()
                     ventana_empleados.lift()
+                    
+                #Si no es valido o hay un error en la conexion, tira error dependiendo del tipo
                 else:
                     messagebox.showerror("Error", "No se pudo conectar a la base de datos")
                     ventana_registro.destroy()
                     ventana_empleados.lift()
             except Exception as e:
-                messagebox.showerror("Error", f"No se pudo registrar el doctor: {e}")
+                print(e)
+                messagebox.showerror("Error", f"No se pudo registrar el empleado")
                 ventana_registro.lift()
         else:
             messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
             ventana_registro.lift()
     
-    
+    # Al finalizar se refresca la tabla
     refresh_table(tablaEmpleados, "empleados")
     
-    # Botón para guardar doctor
+    # Botones para guardar y cancelar
     btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_empleado)
     btn_guardar.pack(pady=10, side="left")
     btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=lambda: cancelar(ventana_registro, ventana_empleados))
@@ -1142,7 +1192,7 @@ def abrir_ventana_pacientes_doctores():
         cursor.close()
         connection.close()
     
-    centrar_ventana(ventana_pacientes, 2, 2, 3)
+    centrar_ventana(ventana_pacientes_doctor, 2, 2, 3)
 
 def asignar_consulta():
     global ventana_asignar_consulta
