@@ -12,7 +12,9 @@ from tkinter import messagebox, ttk
 
 import psycopg2
 from tkcalendar import Calendar
+
 import pdf
+
 
 # Conexión a la base de datos
 def conectar_db():
@@ -328,8 +330,8 @@ def abrir_ventana_empleados():
     btn_registrar = tk.Button(button_frame, text="Registrar", width=15, command=registrar_empleado)
     btn_registrar.pack(side="left", padx=10)
     
-    #btn_editar = tk.Button(button_frame, text="Editar", width=15)
-    #btn_editar.pack(side="left", padx=10)
+    btn_editar = tk.Button(button_frame, text="Editar", width=15, command=editar_empleado)
+    btn_editar.pack(side="left", padx=10)
     
     btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15, command=eliminar_empleado)
     btn_eliminar.pack(side="left", padx=10)
@@ -351,267 +353,6 @@ def abrir_ventana_empleados():
         connection.close()
     
     centrar_ventana(ventana_empleados, 2, 2, 3)
-
-def registrar_empleado():
-    # Ventana para registrar nuevo empleado
-    ventana_registro = tk.Toplevel()
-    ventana_registro.title("Registrar nuevo empleado")
-    cargar_logo(ventana_registro)
-    
-    frame_registro = tk.Frame(ventana_registro)
-    frame_registro.pack(padx=10, pady=10)
-
-    # Campos para registrar empleado
-    labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Sueldo", "Turno", "Contraseña"]
-    entries = []
-
-    for label_text in labels:
-        label = tk.Label(frame_registro, text=label_text)
-        label.pack(pady=2)
-        entry = tk.Entry(frame_registro)
-        entry.pack(pady=2)
-        entries.append(entry)
-
-    def guardar_empleado():
-        # Recuperar los valores de los campos
-        valores = [entry.get() for entry in entries]
-        if all(valores):
-            try:
-                connection, cursor = conectar_db()
-                if connection and cursor:
-                    query = """
-                        INSERT INTO empleados (nombre, direccion, telefono, fecha_nac, sexo, sueldo, turno, contrasena)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    """
-                    cursor.execute(query, tuple(valores))
-                    connection.commit()
-                    messagebox.showinfo("Éxito", "Empleado registrado exitosamente")
-                    cursor.close()
-                    connection.close()
-                    ventana_registro.destroy()  # Cerrar la ventana de registro después de guardar
-                    ventana_empleados.lift()
-                else:
-                    messagebox.showerror("Error", "No se pudo conectar a la base de datos")
-                    ventana_registro.destroy()
-                    ventana_empleados.lift()
-            except Exception as e:
-                messagebox.showerror("Error", f"No se pudo registrar el doctor: {e}")
-                ventana_registro.lift()
-        else:
-            messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
-            ventana_registro.lift()
-    
-    
-    refresh_table(tablaEmpleados, "empleados")
-    
-    # Botón para guardar doctor
-    btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_empleado)
-    btn_guardar.pack(pady=10, side="left")
-    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=lambda: cancelar(ventana_registro, ventana_empleados))
-    btn_cancelar.pack(pady=10, side="right")
-    
-    centrar_ventana(ventana_registro, 4, 2, 3)
-
-def eliminar_empleado():
-    # Crear una ventana para seleccionar la cita a editar
-    global ventana_eliminar_empleado
-    ventana_eliminar_empleado = tk.Toplevel()
-    ventana_eliminar_empleado.title("Eliminar Empleado")
-    frame_eliminar = tk.Frame(ventana_eliminar_empleado)
-    frame_eliminar.pack(padx=10, pady=10)
-    cargar_logo(ventana_eliminar_empleado)
-    centrar_ventana(ventana_eliminar_empleado, 7, 7, 3)
-
-    # Conectar y obtener los códigos de citas existentes
-    try:
-        connection, cursor = conectar_db()
-        if connection and cursor:
-            cursor.execute("SELECT codigo FROM empleados")
-            empleados = cursor.fetchall()
-            lista_empleados = [str(empleado[0]) for empleado in empleados]  # Convertir los códigos a string
-
-            cursor.close()
-            connection.close()
-        else:
-            raise Exception("No se pudo conectar a la base de datos")
-    except Exception as e:
-        print(e)
-        messagebox.showerror("Error", f"No se pudo cargar los datos de los empleados")
-        return
-
-    # Mostrar la lista de citas
-    tk.Label(frame_eliminar, text="Seleccione el ID del empleado a eliminar:").pack(pady=5)
-    combo_empleados = ttk.Combobox(frame_eliminar, values=lista_empleados)
-    combo_empleados.pack()
-
-    # Botón para continuar con la edición
-    tk.Button(frame_eliminar, text="Continuar", command=lambda: continuar_eliminacion_empleado(combo_empleados.get())).pack(pady=20)
-
-    def continuar_eliminacion_empleado(codigo_empleado):
-        if not codigo_empleado:
-            messagebox.showwarning("Advertencia", "Debe seleccionar un codigo de empleado.")
-            return
-        
-        try:
-            connection, cursor = conectar_db()
-            if connection and cursor:
-
-                confirmacion = messagebox.askyesno(
-                    "Confirmar Eliminacion",
-                    f"¿Deseas eliminar al empleado {codigo_empleado}?"
-                )
-                if confirmacion:
-                    cursor.execute(f"DELETE FROM empleados WHERE codigo = {codigo_empleado};")
-                    connection.commit()
-                    messagebox.showinfo("Empleado Eliminado", "El empleado ha sido eliminado exitosamente.")
-                    ventana_empleados.lift()
-                    refresh_table(tablaEmpleados, "empleados")
-                
-                    cursor.close()
-                    connection.close()
-
-            else:
-                raise Exception("No se pudo conectar a la base de datos")
-        except Exception as e:
-            print(e)
-            messagebox.showerror("Error", f"No se pudo cargar los datos de los pacientes")
-            return
-
-def abrir_ventana_doctores():
-    global ventana_doctores
-    ventana_doctores = tk.Toplevel()
-    ventana_doctores.title("Doctores")
-    cargar_logo(ventana_doctores)
-    
-    frame_principal = tk.Frame(ventana_doctores)
-    frame_principal.pack(expand=True, fill="both", padx=10, pady=10)
-    
-    # Crear tabla con scrollbars
-    tree_frame = tk.Frame(frame_principal)
-    tree_frame.pack(fill="both", expand=True)
-    
-    # Scrollbars
-    scrollbar_y = tk.Scrollbar(tree_frame, orient="vertical")
-    scrollbar_y.pack(side="right", fill="y")
-    
-    scrollbar_x = tk.Scrollbar(tree_frame, orient="horizontal")
-    scrollbar_x.pack(side="bottom", fill="x")
-    
-    # Definir columnas de la tabla doctores
-    global tablaDoctores
-    tablaDoctores = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "especialidad", "contrasena"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
-    tablaDoctores.pack(fill="both", expand=True)
-    
-    # Configuración de las columnas
-    tablaDoctores.heading("codigo", text="Código")
-    tablaDoctores.heading("nombre", text="Nombre")
-    tablaDoctores.heading("direccion", text="Dirección")
-    tablaDoctores.heading("telefono", text="Teléfono")
-    tablaDoctores.heading("fecha_nac", text="Fecha Nacimiento")
-    tablaDoctores.heading("sexo", text="Sexo")
-    tablaDoctores.heading("especialidad", text="Especialidad")
-    tablaDoctores.heading("contrasena", text="Contraseña")
-    
-    # Ajustar el tamaño de las columnas
-    tablaDoctores.column("codigo", width=80)
-    tablaDoctores.column("nombre", width=150)
-    tablaDoctores.column("direccion", width=200)
-    tablaDoctores.column("telefono", width=100)
-    tablaDoctores.column("fecha_nac", width=120)
-    tablaDoctores.column("sexo", width=80)
-    tablaDoctores.column("especialidad", width=80)
-    tablaDoctores.column("contrasena", width=120)
-    
-    # Asignar los scrollbars al Treeview
-    scrollbar_y.config(command=tablaDoctores.yview)
-    scrollbar_x.config(command=tablaDoctores.xview)
-    
-    # Botones para registrar, editar y eliminar doctores
-    button_frame = tk.Frame(frame_principal)
-    button_frame.pack(fill="x", pady=10)
-    
-    btn_registrar = tk.Button(button_frame, text="Registrar", width=15, command=registrar_doctor)
-    btn_registrar.pack(side="left", padx=10)
-    
-    #btn_editar = tk.Button(button_frame, text="Editar", width=15)
-    #btn_editar.pack(side="left", padx=10)
-    
-    #btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
-    #btn_eliminar.pack(side="left", padx=10)
-    
-    btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tablaDoctores, "doctores"))
-    btn_refresh.pack(side="right", padx=10)
-    
-    # Conectar y mostrar los datos en la tabla
-    connection, cursor = conectar_db()
-    if connection and cursor:
-        cursor.execute("SELECT * FROM doctores ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
-        rows = cursor.fetchall()
-        for row in rows:
-            tablaDoctores.insert("", "end", values=row)
-        
-        cursor.close()
-        connection.close()
-    
-    centrar_ventana(ventana_doctores, 2, 2, 3)
-
-def registrar_doctor():
-    ventana_registro = tk.Toplevel()
-    ventana_registro.title("Registrar nuevo doctor")
-    cargar_logo(ventana_registro)
-    
-    frame_registro = tk.Frame(ventana_registro)
-    frame_registro.pack(padx=10, pady=10)
-
-    # Campos para registrar doctor
-    labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Especialidad", "Contraseña"]
-    entries = []
-
-    for label_text in labels:
-        label = tk.Label(frame_registro, text=label_text)
-        label.pack(pady=2)
-        entry = tk.Entry(frame_registro)
-        entry.pack(pady=2)
-        entries.append(entry)
-
-    def guardar_doctor():
-        # Recuperar los valores de los campos
-        valores = [entry.get() for entry in entries]
-        if all(valores):
-            try:
-                connection, cursor = conectar_db()
-                if connection and cursor:
-                    query = """
-                        INSERT INTO doctores (nombre, direccion, telefono, fecha_nac, sexo, especialidad, contrasena)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """
-                    cursor.execute(query, tuple(valores))
-                    connection.commit()
-                    messagebox.showinfo("Éxito", "Doctor registrado exitosamente")
-                    cursor.close()
-                    connection.close()
-                    ventana_registro.destroy()  # Cerrar la ventana de registro después de guardar
-                    ventana_doctores.lift()
-                else:
-                    messagebox.showerror("Error", "No se pudo conectar a la base de datos")
-                    ventana_registro.destroy()
-                    ventana_doctores.lift()
-            except Exception as e:
-                messagebox.showerror("Error", f"No se pudo registrar el doctor: {e}")
-                ventana_registro.lift()
-        else:
-            messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
-            ventana_registro.lift()
-        
-        refresh_table(tablaDoctores, "doctores")
-        
-    # Botón para guardar doctor
-    btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_doctor)
-    btn_guardar.pack(pady=10, side="left")
-    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=lambda: cancelar(ventana_registro, ventana_doctores))
-    btn_cancelar.pack(pady=10, side="right")
-
-    centrar_ventana(ventana_registro, 4, 2, 3)
 
 def abrir_ventana_pacientes():
     global ventana_pacientes
@@ -690,6 +431,583 @@ def abrir_ventana_pacientes():
         connection.close()
     
     centrar_ventana(ventana_pacientes, 2, 2, 3)
+
+def abrir_ventana_doctores():
+    global ventana_doctores
+    ventana_doctores = tk.Toplevel()
+    ventana_doctores.title("Doctores")
+    cargar_logo(ventana_doctores)
+    
+    frame_principal = tk.Frame(ventana_doctores)
+    frame_principal.pack(expand=True, fill="both", padx=10, pady=10)
+    
+    # Crear tabla con scrollbars
+    tree_frame = tk.Frame(frame_principal)
+    tree_frame.pack(fill="both", expand=True)
+    
+    # Scrollbars
+    scrollbar_y = tk.Scrollbar(tree_frame, orient="vertical")
+    scrollbar_y.pack(side="right", fill="y")
+    
+    scrollbar_x = tk.Scrollbar(tree_frame, orient="horizontal")
+    scrollbar_x.pack(side="bottom", fill="x")
+    
+    # Definir columnas de la tabla doctores
+    global tablaDoctores
+    tablaDoctores = ttk.Treeview(tree_frame, columns=("codigo", "nombre", "direccion", "telefono", "fecha_nac", "sexo", "especialidad", "contrasena"), show="headings", yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+    tablaDoctores.pack(fill="both", expand=True)
+    
+    # Configuración de las columnas
+    tablaDoctores.heading("codigo", text="Código")
+    tablaDoctores.heading("nombre", text="Nombre")
+    tablaDoctores.heading("direccion", text="Dirección")
+    tablaDoctores.heading("telefono", text="Teléfono")
+    tablaDoctores.heading("fecha_nac", text="Fecha Nacimiento")
+    tablaDoctores.heading("sexo", text="Sexo")
+    tablaDoctores.heading("especialidad", text="Especialidad")
+    tablaDoctores.heading("contrasena", text="Contraseña")
+    
+    # Ajustar el tamaño de las columnas
+    tablaDoctores.column("codigo", width=80)
+    tablaDoctores.column("nombre", width=150)
+    tablaDoctores.column("direccion", width=200)
+    tablaDoctores.column("telefono", width=100)
+    tablaDoctores.column("fecha_nac", width=120)
+    tablaDoctores.column("sexo", width=80)
+    tablaDoctores.column("especialidad", width=80)
+    tablaDoctores.column("contrasena", width=120)
+    
+    # Asignar los scrollbars al Treeview
+    scrollbar_y.config(command=tablaDoctores.yview)
+    scrollbar_x.config(command=tablaDoctores.xview)
+    
+    # Botones para registrar, editar y eliminar doctores
+    button_frame = tk.Frame(frame_principal)
+    button_frame.pack(fill="x", pady=10)
+    
+    btn_registrar = tk.Button(button_frame, text="Registrar", width=15, command=registrar_doctor)
+    btn_registrar.pack(side="left", padx=10)
+    
+    btn_editar = tk.Button(button_frame, text="Editar", width=15, command=editar_doctor)
+    btn_editar.pack(side="left", padx=10)
+    
+    btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15, command=eliminar_doctor)
+    btn_eliminar.pack(side="left", padx=10)
+    
+    btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tablaDoctores, "doctores"))
+    btn_refresh.pack(side="right", padx=10)
+    
+    # Conectar y mostrar los datos en la tabla
+    connection, cursor = conectar_db()
+    if connection and cursor:
+        cursor.execute("SELECT * FROM doctores ORDER BY codigo ASC")  # Asegúrate de que la tabla existe y tiene estos campos
+        rows = cursor.fetchall()
+        for row in rows:
+            tablaDoctores.insert("", "end", values=row)
+        
+        cursor.close()
+        connection.close()
+    
+    centrar_ventana(ventana_doctores, 2, 2, 3)
+
+def registrar_empleado():
+    # Ventana para registrar nuevo empleado
+    ventana_registro = tk.Toplevel()
+    ventana_registro.title("Registrar nuevo empleado")
+    cargar_logo(ventana_registro)
+    
+    frame_registro = tk.Frame(ventana_registro)
+    frame_registro.pack(padx=10, pady=10)
+
+    # Campos para registrar empleado
+    labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Sueldo", "Turno", "Contraseña"]
+    entries = []
+
+    for label_text in labels:
+        label = tk.Label(frame_registro, text=label_text)
+        label.pack(pady=2)
+        entry = tk.Entry(frame_registro)
+        entry.pack(pady=2)
+        entries.append(entry)
+
+    def guardar_empleado():
+        # Recuperar los valores de los campos
+        valores = [entry.get() for entry in entries]
+        if all(valores):
+            try:
+                connection, cursor = conectar_db()
+                if connection and cursor:
+                    query = """
+                        INSERT INTO empleados (nombre, direccion, telefono, fecha_nac, sexo, sueldo, turno, contrasena)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(query, tuple(valores))
+                    connection.commit()
+                    messagebox.showinfo("Éxito", "Empleado registrado exitosamente")
+                    cursor.close()
+                    connection.close()
+                    ventana_registro.destroy()  # Cerrar la ventana de registro después de guardar
+                    ventana_empleados.lift()
+                else:
+                    messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+                    ventana_registro.destroy()
+                    ventana_empleados.lift()
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo registrar el doctor: {e}")
+                ventana_registro.lift()
+        else:
+            messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
+            ventana_registro.lift()
+    
+    
+    refresh_table(tablaEmpleados, "empleados")
+    
+    # Botón para guardar doctor
+    btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_empleado)
+    btn_guardar.pack(pady=10, side="left")
+    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=lambda: cancelar(ventana_registro, ventana_empleados))
+    btn_cancelar.pack(pady=10, side="right")
+    
+    centrar_ventana(ventana_registro, 4, 2, 3)
+
+def eliminar_empleado():
+    # Crear una ventana para seleccionar la cita a editar
+    global ventana_eliminar_empleado
+    ventana_eliminar_empleado = tk.Toplevel()
+    ventana_eliminar_empleado.title("Eliminar Empleado")
+    frame_eliminar = tk.Frame(ventana_eliminar_empleado)
+    frame_eliminar.pack(padx=10, pady=10)
+    cargar_logo(ventana_eliminar_empleado)
+    centrar_ventana(ventana_eliminar_empleado, 7, 7, 3)
+
+    # Conectar y obtener los códigos de citas existentes
+    try:
+        connection, cursor = conectar_db()
+        if connection and cursor:
+            cursor.execute("SELECT codigo FROM empleados ORDER BY codigo ASC")
+            empleados = cursor.fetchall()
+            lista_empleados = [str(empleado[0]) for empleado in empleados]  # Convertir los códigos a string
+
+            cursor.close()
+            connection.close()
+        else:
+            raise Exception("No se pudo conectar a la base de datos")
+    except Exception as e:
+        print(e)
+        messagebox.showerror("Error", f"No se pudo cargar los datos de los empleados")
+        return
+
+    # Mostrar la lista de citas
+    tk.Label(frame_eliminar, text="Seleccione el ID del empleado a eliminar:").pack(pady=5)
+    combo_empleados = ttk.Combobox(frame_eliminar, values=lista_empleados)
+    combo_empleados.pack()
+
+    # Botón para continuar con la edición
+    tk.Button(frame_eliminar, text="Continuar", command=lambda: continuar_eliminacion_empleado(combo_empleados.get())).pack(pady=20)
+
+    def continuar_eliminacion_empleado(codigo_empleado):
+        if not codigo_empleado:
+            messagebox.showwarning("Advertencia", "Debe seleccionar un codigo de empleado.")
+            return
+        
+        try:
+            connection, cursor = conectar_db()
+            if connection and cursor:
+
+                confirmacion = messagebox.askyesno(
+                    "Confirmar Eliminacion",
+                    f"¿Deseas eliminar al empleado {codigo_empleado}?"
+                )
+                if confirmacion:
+                    cursor.execute(f"DELETE FROM empleados WHERE codigo = {codigo_empleado};")
+                    connection.commit()
+                    messagebox.showinfo("Empleado Eliminado", "El empleado ha sido eliminado exitosamente.")
+                    ventana_empleados.lift()
+                    refresh_table(tablaEmpleados, "empleados")
+                
+                    cursor.close()
+                    connection.close()
+
+            else:
+                raise Exception("No se pudo conectar a la base de datos")
+        except Exception as e:
+            print(e)
+            messagebox.showerror("Error", f"No se pudo cargar los datos de los pacientes")
+            return
+
+def editar_empleado():
+
+    ventana_editar_empleado = tk.Toplevel()
+    ventana_editar_empleado.title("Editar Empleado")
+    frame_editar = tk.Frame(ventana_editar_empleado)
+    frame_editar.pack(padx=10, pady=10)
+    cargar_logo(ventana_editar_empleado)
+    centrar_ventana(ventana_editar_empleado, 7, 7, 3)
+
+    try:
+        connection, cursor = conectar_db()
+        if connection and cursor:
+            cursor.execute("SELECT codigo FROM empleados ORDER BY codigo ASC")
+            empleados = cursor.fetchall()
+            lista_empleados = [str(empleado[0]) for empleado in empleados]  # Convertir los códigos a string
+
+            cursor.close()
+            connection.close()
+        else:
+            raise Exception("No se pudo conectar a la base de datos")
+    except Exception as e:
+        print(e)
+        messagebox.showerror("Error", f"No se pudo cargar los datos de los empleados")
+        return
+
+    # Mostrar la lista de citas
+    tk.Label(frame_editar, text="Seleccione el ID del empleado a editar:").pack(pady=5)
+    combo_empleados = ttk.Combobox(frame_editar, values=lista_empleados)
+    combo_empleados.pack()
+
+    # Botón para continuar con la edición
+    tk.Button(frame_editar, text="Continuar", command=lambda: continuar_edicion_empleado(combo_empleados.get())).pack(pady=20)
+
+    def continuar_edicion_empleado(codigo_empleado):
+        ventana_editar_empleado.destroy()
+        ventana_edicion = tk.Toplevel()
+        ventana_edicion.title("Editar información del empleado")
+        cargar_logo(ventana_edicion)
+        centrar_ventana(ventana_edicion, 3, 2, 2)
+    
+        frame_edicion = tk.Frame(ventana_edicion)
+        frame_edicion.pack(padx=10, pady=10)
+
+        labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Sueldo", "Turno", "Contraseña"]
+        entries = []
+
+        try:
+            connection, cursor = conectar_db()
+            if connection and cursor:
+                cursor.execute("SELECT nombre, direccion, telefono, fecha_nac, sexo, sueldo, turno, contrasena FROM empleados WHERE codigo = %s", (codigo_empleado,))
+                empleado = cursor.fetchone()
+            
+                if empleado:
+                    # Rellenar las entradas con la información actual
+                    for i, label_text in enumerate(labels):
+                        label = tk.Label(frame_edicion, text=label_text)
+                        label.pack(pady=2)
+
+                        entry = tk.Entry(frame_edicion)
+                        entry.pack(pady=2)
+
+                        # Establecer valor inicial desde la base de datos
+                        entry.insert(0, str(empleado[i]))
+                        entries.append(entry)
+                else:
+                    messagebox.showerror("Error", "No se encontró al empleado")
+                    ventana_edicion.destroy()
+                    return
+            else:
+                messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+                ventana_edicion.destroy()
+                return
+        except Exception as e:
+            print(e)
+            messagebox.showerror("Error", "Ocurrió un error al obtener la información del paciente")
+            ventana_edicion.destroy()
+            return
+
+        def guardar_empleado():
+            # Recuperar los valores de los campos
+            valores = [entry.get() for entry in entries]
+            if all(valores):
+                try:
+                    connection, cursor = conectar_db()
+                    if connection and cursor:
+
+                        confirmacion = messagebox.askyesno(
+                        "Confirmar Edición",
+                        f"¿Deseas actualizar la información del empleado con código {codigo_empleado}?"
+                        )
+                        if confirmacion:
+
+                            sql_update = """
+                            UPDATE empleados
+                            SET nombre = %s, direccion = %s, telefono = %s, fecha_nac = %s, sexo = %s, sueldo = %s, turno = %s, contrasena = %s WHERE codigo = %s
+                            """
+                            cursor.execute(sql_update, (*valores, codigo_empleado))
+
+                            connection.commit()
+                            messagebox.showinfo("Empleado Actualizado", "La información del empleado ha sido actualizada exitosamente.")
+                            ventana_edicion.destroy()
+                            ventana_empleados.lift()
+                            refresh_table(tablaEmpleados, "empleados")
+
+                    else:
+                        messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+                        ventana_edicion.destroy()
+                        ventana_empleados.lift()
+                except Exception as e:
+                    print(e)
+                    messagebox.showerror("Error", f"No se pudo editar la informacin del empleado")
+                    ventana_edicion.lift()
+                
+            else:
+                messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
+                ventana_edicion.lift()
+            
+        refresh_table(tablaEmpleados, "empleados")
+        # Botón para guardar doctor
+        btn_guardar = tk.Button(frame_edicion, text="Guardar", command=guardar_empleado)
+        btn_guardar.pack(pady=10, side="left")
+        btn_cancelar = tk.Button(frame_edicion, text="Cancelar", command=lambda: cancelar(ventana_edicion, ventana_empleados))
+        btn_cancelar.pack(pady=10, side="right")
+
+def registrar_doctor():
+    ventana_registro = tk.Toplevel()
+    ventana_registro.title("Registrar nuevo doctor")
+    cargar_logo(ventana_registro)
+    
+    frame_registro = tk.Frame(ventana_registro)
+    frame_registro.pack(padx=10, pady=10)
+
+    # Campos para registrar doctor
+    labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Especialidad", "Contraseña"]
+    entries = []
+
+    for label_text in labels:
+        label = tk.Label(frame_registro, text=label_text)
+        label.pack(pady=2)
+        entry = tk.Entry(frame_registro)
+        entry.pack(pady=2)
+        entries.append(entry)
+
+    def guardar_doctor():
+        # Recuperar los valores de los campos
+        valores = [entry.get() for entry in entries]
+        if all(valores):
+            try:
+                connection, cursor = conectar_db()
+                if connection and cursor:
+                    query = """
+                        INSERT INTO doctores (nombre, direccion, telefono, fecha_nac, sexo, especialidad, contrasena)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(query, tuple(valores))
+                    connection.commit()
+                    messagebox.showinfo("Éxito", "Doctor registrado exitosamente")
+                    cursor.close()
+                    connection.close()
+                    ventana_registro.destroy()  # Cerrar la ventana de registro después de guardar
+                    ventana_doctores.lift()
+                else:
+                    messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+                    ventana_registro.destroy()
+                    ventana_doctores.lift()
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo registrar el doctor: {e}")
+                ventana_registro.lift()
+        else:
+            messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
+            ventana_registro.lift()
+        
+        refresh_table(tablaDoctores, "doctores")
+        
+    # Botón para guardar doctor
+    btn_guardar = tk.Button(frame_registro, text="Guardar", command=guardar_doctor)
+    btn_guardar.pack(pady=10, side="left")
+    btn_cancelar = tk.Button(frame_registro, text="Cancelar", command=lambda: cancelar(ventana_registro, ventana_doctores))
+    btn_cancelar.pack(pady=10, side="right")
+
+    centrar_ventana(ventana_registro, 4, 2, 3)
+
+def editar_doctor():
+    # Ventana para registrar nuevo empleado
+
+    ventana_editar_doctor = tk.Toplevel()
+    ventana_editar_doctor.title("Editar Doctor")
+    frame_editar = tk.Frame(ventana_editar_doctor)
+    frame_editar.pack(padx=10, pady=10)
+    cargar_logo(ventana_editar_doctor)
+    centrar_ventana(ventana_editar_doctor, 7, 7, 3)
+
+    # Conectar y obtener los códigos de citas existentes
+    try:
+        connection, cursor = conectar_db()
+        if connection and cursor:
+            cursor.execute("SELECT codigo FROM doctores ORDER BY codigo ASC")
+            doctores = cursor.fetchall()
+            lista_doctores = [str(doctor[0]) for doctor in doctores]  # Convertir los códigos a string
+
+            cursor.close()
+            connection.close()
+        else:
+            raise Exception("No se pudo conectar a la base de datos")
+    except Exception as e:
+        print(e)
+        messagebox.showerror("Error", f"No se pudo cargar los datos de los doctores")
+        return
+
+    # Mostrar la lista de citas
+    tk.Label(frame_editar, text="Seleccione el ID del doctor a editar:").pack(pady=5)
+    combo_doctores = ttk.Combobox(frame_editar, values=doctores)
+    combo_doctores.pack()
+
+    # Botón para continuar con la edición
+    tk.Button(frame_editar, text="Continuar", command=lambda: continuar_edicion_doctor(combo_doctores.get())).pack(pady=20)
+
+    def continuar_edicion_doctor(codigo_doctor):
+        ventana_editar_doctor.destroy()
+        ventana_edicion = tk.Toplevel()
+        ventana_edicion.title("Editar información del doctor")
+        cargar_logo(ventana_edicion)
+        centrar_ventana(ventana_edicion, 3, 2, 2)
+    
+        frame_edicion = tk.Frame(ventana_edicion)
+        frame_edicion.pack(padx=10, pady=10)
+
+        labels = ["Nombre", "Dirección", "Teléfono", "Fecha Nac (YYYY-MM-DD)", "Sexo", "Especialidad", "Contraseña"]
+        entries = []
+
+        try:
+            connection, cursor = conectar_db()
+            if connection and cursor:
+                cursor.execute("SELECT nombre, direccion, telefono, fecha_nac, sexo, especialidad, contrasena FROM doctores WHERE codigo = %s", (codigo_doctor,))
+                doctor = cursor.fetchone()
+            
+                if doctor:
+                    # Rellenar las entradas con la información actual
+                    for i, label_text in enumerate(labels):
+                        label = tk.Label(frame_edicion, text=label_text)
+                        label.pack(pady=2)
+
+                        entry = tk.Entry(frame_edicion)
+                        entry.pack(pady=2)
+
+                        # Establecer valor inicial desde la base de datos
+                        entry.insert(0, str(doctor[i]))
+                        entries.append(entry)
+                else:
+                    messagebox.showerror("Error", "No se encontró al doctor")
+                    ventana_edicion.destroy()
+                    return
+            else:
+                messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+                ventana_edicion.destroy()
+                return
+        except Exception as e:
+            print(e)
+            messagebox.showerror("Error", "Ocurrió un error al obtener la información del doctor")
+            ventana_edicion.destroy()
+            return
+
+        def guardar_doctor():
+            # Recuperar los valores de los campos
+            valores = [entry.get() for entry in entries]
+            if all(valores):
+                try:
+                    connection, cursor = conectar_db()
+                    if connection and cursor:
+
+                        confirmacion = messagebox.askyesno(
+                        "Confirmar Edición",
+                        f"¿Deseas actualizar la información del doctor con código {codigo_doctor}?"
+                        )
+                        if confirmacion:
+
+                            sql_update = """
+                            UPDATE doctores
+                            SET nombre = %s, direccion = %s, telefono = %s, fecha_nac = %s,
+                                sexo = %s, especialidad = %s, contrasena = %s
+                            WHERE codigo = %s
+                            """
+                            cursor.execute(sql_update, (*valores, codigo_doctor))
+
+                            connection.commit()
+                            messagebox.showinfo("Doctor Actualizado", "La información del doctor ha sido actualizada exitosamente.")
+                            ventana_edicion.destroy()
+                            ventana_doctores.lift()
+                            refresh_table(tablaDoctores, "doctores")
+
+                    else:
+                        messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+                        ventana_edicion.destroy()
+                        ventana_doctores.lift()
+                except Exception as e:
+                    print(e)
+                    messagebox.showerror("Error", f"No se pudo editar la informacin del paciente")
+                    ventana_edicion.lift()
+                
+            else:
+                messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
+                ventana_edicion.lift()
+            
+        refresh_table(tablaDoctores, "doctores")
+        # Botón para guardar doctor
+        btn_guardar = tk.Button(frame_edicion, text="Guardar", command=guardar_doctor)
+        btn_guardar.pack(pady=10, side="left")
+        btn_cancelar = tk.Button(frame_edicion, text="Cancelar", command=lambda: cancelar(ventana_edicion, ventana_doctores))
+        btn_cancelar.pack(pady=10, side="right")
+
+def eliminar_doctor():
+    # Crear una ventana para seleccionar la cita a editar
+    ventana_eliminar_doctor = tk.Toplevel()
+    ventana_eliminar_doctor.title("Eliminar Empleado")
+    frame_eliminar = tk.Frame(ventana_eliminar_doctor)
+    frame_eliminar.pack(padx=10, pady=10)
+    cargar_logo(ventana_eliminar_doctor)
+    centrar_ventana(ventana_eliminar_doctor, 7, 7, 3)
+
+    # Conectar y obtener los códigos de citas existentes
+    try:
+        connection, cursor = conectar_db()
+        if connection and cursor:
+            cursor.execute("SELECT codigo FROM doctores ORDER BY codigo ASC")
+            doctores = cursor.fetchall()
+            lista_doctores = [str(doctor[0]) for doctor in doctores]  # Convertir los códigos a string
+
+            cursor.close()
+            connection.close()
+        else:
+            raise Exception("No se pudo conectar a la base de datos")
+    except Exception as e:
+        print(e)
+        messagebox.showerror("Error", f"No se pudo cargar los datos de los doctores")
+        return
+
+    # Mostrar la lista de citas
+    tk.Label(frame_eliminar, text="Seleccione el ID del doctor a eliminar:").pack(pady=5)
+    combo_doctores = ttk.Combobox(frame_eliminar, values=lista_doctores)
+    combo_doctores.pack()
+
+    # Botón para continuar con la edición
+    tk.Button(frame_eliminar, text="Continuar", command=lambda: continuar_eliminacion_doctor(combo_doctores.get())).pack(pady=20)
+
+    def continuar_eliminacion_doctor(codigo_doctor):
+        if not codigo_doctor:
+            messagebox.showwarning("Advertencia", "Debe seleccionar un codigo de doctor.")
+            return
+        
+        try:
+            connection, cursor = conectar_db()
+            if connection and cursor:
+
+                confirmacion = messagebox.askyesno(
+                    "Confirmar Eliminacion",
+                    f"¿Deseas eliminar al doctor {codigo_doctor}?"
+                )
+                if confirmacion:
+                    cursor.execute(f"DELETE FROM doctores WHERE codigo = {codigo_doctor};")
+                    connection.commit()
+                    messagebox.showinfo("Doctor Eliminado", "El empldoctoreado ha sido eliminado exitosamente.")
+                    ventana_doctores.lift()
+                    refresh_table(tablaDoctores, "doctores")
+                
+                    cursor.close()
+                    connection.close()
+
+            else:
+                raise Exception("No se pudo conectar a la base de datos")
+        except Exception as e:
+            print(e)
+            messagebox.showerror("Error", f"No se pudo cargar los datos de los doctores")
+            return
 
 def abrir_ventana_eliminar_paciente():
     # Crear una ventana para seleccionar la cita a editar
@@ -1022,6 +1340,7 @@ def editar_paciente():
     tk.Button(frame_editar, text="Continuar", command=lambda: continuar_edicion_paciente(combo_pacientes.get())).pack(pady=20)
 
     def continuar_edicion_paciente(codigo_paciente):
+        ventana_editar_paciente.destroy()
         ventana_edicion = tk.Toplevel()
         ventana_edicion.title("Editar información del paciente")
         cargar_logo(ventana_edicion)
@@ -1080,7 +1399,7 @@ def editar_paciente():
                         if confirmacion:
 
                             sql_update = """
-                            UPDATE pacientes 
+                            UPDATE pacientes
                             SET nombre = %s, direccion = %s, telefono = %s, fecha_nac = %s, 
                                 sexo = %s, edad = %s, estatura = %s
                             WHERE codigo = %s
@@ -1640,11 +1959,11 @@ def abrir_ventana_medicamentos():
     btn_registrar = tk.Button(button_frame, text="Registrar", width=15, command=registrar_medicamento)
     btn_registrar.pack(side="left", padx=10)
     
-    #btn_editar = tk.Button(button_frame, text="Editar", width=15)
-    #btn_editar.pack(side="left", padx=10)
+    btn_editar = tk.Button(button_frame, text="Editar", width=15, command=editar_medicamento)
+    btn_editar.pack(side="left", padx=10)
     
-    #btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15)
-    #btn_eliminar.pack(side="left", padx=10)
+    btn_eliminar = tk.Button(button_frame, text="Eliminar", width=15, command=eliminar_medicamento)
+    btn_eliminar.pack(side="left", padx=10)
     
     
     btn_refresh = tk.Button(button_frame, text="Refresh", width=15, command=lambda: refresh_table(tabla_medicamentos, "medicamentos"))
@@ -1723,6 +2042,198 @@ def registrar_medicamento():
     
     centrar_ventana(ventana_registro_medicamento, 4, 2, 3)
 
+def editar_medicamento():
+    # Ventana para registrar nuevo empleado
+
+    ventana_editar_medicamento = tk.Toplevel()
+    ventana_editar_medicamento.title("Editar Medicamento")
+    frame_editar = tk.Frame(ventana_editar_medicamento)
+    frame_editar.pack(padx=10, pady=10)
+    cargar_logo(ventana_editar_medicamento)
+    centrar_ventana(ventana_editar_medicamento, 7, 7, 3)
+
+    # Conectar y obtener los códigos de citas existentes
+    try:
+        connection, cursor = conectar_db()
+        if connection and cursor:
+            cursor.execute("SELECT codigo FROM medicamentos ORDER BY codigo ASC")
+            medicamentos = cursor.fetchall()
+            lista_medicamentos = [str(medicamento[0]) for medicamento in medicamentos]  # Convertir los códigos a string
+
+            cursor.close()
+            connection.close()
+        else:
+            raise Exception("No se pudo conectar a la base de datos")
+    except Exception as e:
+        print(e)
+        messagebox.showerror("Error", f"No se pudo cargar los datos de los medicamentos")
+        return
+
+    # Mostrar la lista de citas
+    tk.Label(frame_editar, text="Seleccione el ID del medicamento a editar:").pack(pady=5)
+    combo_medicamentos = ttk.Combobox(frame_editar, values=medicamentos)
+    combo_medicamentos.pack()
+
+    # Botón para continuar con la edición
+    tk.Button(frame_editar, text="Continuar", command=lambda: continuar_edicion_medicamento(combo_medicamentos.get())).pack(pady=20)
+
+    def continuar_edicion_medicamento(codigo_medicamento):
+        ventana_editar_medicamento.destroy()
+        ventana_edicion = tk.Toplevel()
+        ventana_edicion.title("Editar información del medicamento")
+        cargar_logo(ventana_edicion)
+        centrar_ventana(ventana_edicion, 3, 2, 2)
+    
+        frame_edicion = tk.Frame(ventana_edicion)
+        frame_edicion.pack(padx=10, pady=10)
+
+        labels = ["Nombre", "Via de administración", "Presentación", "Fecha de caducidad (YYYY-MM-DD)"]
+        entries = []
+
+        try:
+            connection, cursor = conectar_db()
+            if connection and cursor:
+                cursor.execute("SELECT nombre, via_adm, presentacion, fecha_cad FROM medicamentos WHERE codigo = %s", (codigo_medicamento,))
+                medicamento = cursor.fetchone()
+            
+                if medicamento:
+                    # Rellenar las entradas con la información actual
+                    for i, label_text in enumerate(labels):
+                        label = tk.Label(frame_edicion, text=label_text)
+                        label.pack(pady=2)
+
+                        entry = tk.Entry(frame_edicion)
+                        entry.pack(pady=2)
+
+                        # Establecer valor inicial desde la base de datos
+                        entry.insert(0, str(medicamento[i]))
+                        entries.append(entry)
+                else:
+                    messagebox.showerror("Error", "No se encontró al medicamento")
+                    ventana_edicion.destroy()
+                    return
+            else:
+                messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+                ventana_edicion.destroy()
+                return
+        except Exception as e:
+            print(e)
+            messagebox.showerror("Error", "Ocurrió un error al obtener la información del medicamento")
+            ventana_edicion.destroy()
+            return
+
+        def guardar_medicamento():
+            # Recuperar los valores de los campos
+            valores = [entry.get() for entry in entries]
+            if all(valores):
+                try:
+                    connection, cursor = conectar_db()
+                    if connection and cursor:
+
+                        confirmacion = messagebox.askyesno(
+                        "Confirmar Edición",
+                        f"¿Deseas actualizar la información del medicamento con código {codigo_medicamento}?"
+                        )
+                        if confirmacion:
+
+                            sql_update = """
+                            UPDATE medicamentos
+                            SET nombre = %s, via_adm = %s, presentacion = %s, fecha_cad = %s
+                            WHERE codigo = %s
+                            """
+                            cursor.execute(sql_update, (*valores, codigo_medicamento))
+
+                            connection.commit()
+                            messagebox.showinfo("Medicamento Actualizado", "La información del medicamento ha sido actualizada exitosamente.")
+                            ventana_edicion.destroy()
+                            ventana_medicamentos.lift()
+                            refresh_table(tabla_medicamentos, "medicamentos")
+
+                    else:
+                        messagebox.showerror("Error", "No se pudo conectar a la base de datos")
+                        ventana_edicion.destroy()
+                        ventana_medicamentos.lift()
+                except Exception as e:
+                    print(e)
+                    messagebox.showerror("Error", f"No se pudo editar la información del medicamento")
+                    ventana_edicion.lift()
+                
+            else:
+                messagebox.showwarning("Advertencia", "Todos los campos son obligatorios")
+                ventana_edicion.lift()
+            
+        refresh_table(tabla_medicamentos, "medicamentos")
+        # Botón para guardar doctor
+        btn_guardar = tk.Button(frame_edicion, text="Guardar", command=guardar_medicamento)
+        btn_guardar.pack(pady=10, side="left")
+        btn_cancelar = tk.Button(frame_edicion, text="Cancelar", command=lambda: cancelar(ventana_edicion, ventana_medicamentos))
+        btn_cancelar.pack(pady=10, side="right")
+
+def eliminar_medicamento():
+    # Crear una ventana para seleccionar la cita a editar
+    ventana_eliminar_medicamento = tk.Toplevel()
+    ventana_eliminar_medicamento.title("Eliminar Medicamento")
+    frame_eliminar = tk.Frame(ventana_eliminar_medicamento)
+    frame_eliminar.pack(padx=10, pady=10)
+    cargar_logo(ventana_eliminar_medicamento)
+    centrar_ventana(ventana_eliminar_medicamento, 7, 7, 3)
+
+    # Conectar y obtener los códigos de citas existentes
+    try:
+        connection, cursor = conectar_db()
+        if connection and cursor:
+            cursor.execute("SELECT codigo FROM medicamentos ORDER BY codigo ASC;")
+            medicamentos = cursor.fetchall()
+            lista_medicamentos = [str(medicamento[0]) for medicamento in medicamentos]  # Convertir los códigos a string
+
+            cursor.close()
+            connection.close()
+        else:
+            raise Exception("No se pudo conectar a la base de datos")
+    except Exception as e:
+        print(e)
+        messagebox.showerror("Error", f"No se pudo cargar los datos de los medicamentos")
+        return
+
+    # Mostrar la lista de citas
+    tk.Label(frame_eliminar, text="Seleccione el ID del medicamento a eliminar:").pack(pady=5)
+    combo_medicamentos = ttk.Combobox(frame_eliminar, values=lista_medicamentos)
+    combo_medicamentos.pack()
+
+    # Botón para continuar con la edición
+    tk.Button(frame_eliminar, text="Continuar", command=lambda: continuar_eliminacion_medicamento(combo_medicamentos.get())).pack(pady=20)
+
+    def continuar_eliminacion_medicamento(codigo_medicamento):
+        if not codigo_medicamento:
+            messagebox.showwarning("Advertencia", "Debe seleccionar un codigo de medicamento.")
+            return
+        
+        try:
+            connection, cursor = conectar_db()
+            if connection and cursor:
+
+                confirmacion = messagebox.askyesno(
+                    "Confirmar Eliminacion",
+                    f"¿Deseas eliminar al medicamento {codigo_medicamento}?"
+                )
+                if confirmacion:
+                    cursor.execute(f"DELETE FROM medicamentos WHERE codigo = {codigo_medicamento};")
+                    connection.commit()
+                    messagebox.showinfo("Medicamento Eliminado", "El medicamento ha sido eliminado exitosamente.")
+                    ventana_medicamentos.lift()
+                    refresh_table(tabla_medicamentos, "medicamentos")
+                
+                    cursor.close()
+                    connection.close()
+
+            else:
+                raise Exception("No se pudo conectar a la base de datos")
+        except Exception as e:
+            print(e)
+            messagebox.showerror("Error", f"No se pudo cargar los datos de los medicamentos")
+            return
+        
+        
 def cerrar_sesion():
     ventana_menu.destroy()
     login()
